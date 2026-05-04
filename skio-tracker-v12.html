@@ -1,0 +1,2338 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SKI-O 雪圈｜遠端工作週報系統</title>
+<style>
+:root{
+  --deep:#334C57;--text:#284957;--light:#DCE9EC;--mid:#5A8090;
+  --pale:#EEF4F6;--white:#fff;--border:#C8D8DC;--bg:#F2F6F7;
+  --gray:#6B7B80;--danger:#B83232;--success:#0F6E56;--warn:#8B5E00;
+  --font:'Helvetica Neue','PingFang TC','Microsoft JhengHei',sans-serif;
+  --r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{-webkit-text-size-adjust:100%;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;}
+/* Header */
+.hdr{background:var(--deep);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 1rem;position:sticky;top:0;z-index:200;}
+.hdr-logo{color:#fff;font-size:14px;font-weight:600;letter-spacing:.04em;}
+.hdr-logo span{color:var(--light);font-weight:400;font-size:11px;margin-left:6px;}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.week-pill{background:rgba(255,255,255,.15);color:#fff;font-size:12px;padding:6px 14px;border-radius:20px;cursor:pointer;border:1px solid rgba(255,255,255,.25);white-space:nowrap;}
+.hdr-save{background:rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:500;padding:6px 14px;border-radius:20px;cursor:pointer;border:1px solid rgba(255,255,255,.3);font-family:var(--font);}
+.hdr-save:active{background:rgba(255,255,255,.35);}
+.autosave-dot{width:7px;height:7px;border-radius:50%;background:#4CAF50;display:inline-block;margin-right:4px;}
+/* Layout */
+.wrap{max-width:1100px;margin:0 auto;padding:1rem 1rem 5rem;}
+/* Dash */
+.dash{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+.dcard{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:1rem;}
+.dcard-title{font-size:11px;font-weight:500;color:var(--gray);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.65rem;}
+.ms-list{display:flex;flex-direction:column;gap:6px;}
+.ms-row{display:flex;align-items:center;gap:7px;}
+.ms-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.ms-dot.done{background:var(--success);}.ms-dot.pending{background:#C5D5D8;}
+.ms-dot.at-risk{background:#D4820A;}.ms-dot.overdue{background:var(--danger);}
+.ms-name{flex:1;color:var(--text);font-size:12px;line-height:1.4;}
+.ms-badge{font-size:10px;padding:2px 6px;border-radius:8px;font-weight:500;white-space:nowrap;}
+.ms-badge.done{background:#E1F5EE;color:var(--success);}
+.ms-badge.pending{background:#EEF4F6;color:var(--gray);}
+.ms-badge.at-risk{background:#FEF3E2;color:var(--warn);}
+.ms-badge.overdue{background:#FDECEC;color:var(--danger);}
+.prog-stack{display:flex;flex-direction:column;gap:10px;}
+.prog-row{display:flex;flex-direction:column;gap:3px;}
+.prog-top{display:flex;justify-content:space-between;font-size:12px;}
+.prog-bg{height:5px;background:var(--pale);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--deep);border-radius:3px;transition:width .4s;}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.stat-box{background:var(--pale);border-radius:8px;padding:.7rem .5rem;text-align:center;}
+.stat-val{font-size:20px;font-weight:600;color:var(--deep);}
+.stat-lbl{font-size:10px;color:var(--gray);margin-top:2px;line-height:1.3;}
+/* Coach nav */
+.coach-nav{display:flex;border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.coach-nav::-webkit-scrollbar{display:none;}
+.c-tab{display:flex;align-items:center;gap:6px;padding:10px 18px;font-size:14px;font-weight:500;color:var(--gray);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;flex-shrink:0;}
+.c-tab.active{color:var(--deep);border-bottom-color:var(--deep);}
+.av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;}
+.av-b{background:#DBEAFE;color:#1D6FA4;}
+.av-m{background:#DCFCE7;color:#1A7A4A;}
+.av-c{background:#DCFCE7;color:#1A7A4A;}
+/* Panel */
+.c-panel{display:none;background:var(--white);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);}
+.c-panel.active{display:block;}
+.panel-body{padding:1rem;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.sec-lbl{font-size:11px;font-weight:500;color:var(--mid);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;display:flex;align-items:center;gap:4px;}
+.fsec{margin-bottom:.875rem;}
+/* Task list */
+.task-add{display:flex;gap:6px;margin-bottom:6px;}
+.task-add input{flex:1;border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-size:14px;font-family:var(--font);color:var(--text);background:var(--bg);outline:none;min-width:0;}
+.task-add input:focus{border-color:var(--mid);background:#fff;}
+.btn-plus{background:var(--pale);border:1px solid var(--border);border-radius:8px;min-width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;color:var(--mid);flex-shrink:0;}
+.task-items{display:flex;flex-direction:column;gap:4px;}
+.task-row{display:flex;align-items:center;gap:8px;padding:10px;background:var(--pale);border-radius:8px;font-size:13px;}
+.task-row input[type=checkbox]{width:18px;height:18px;cursor:pointer;accent-color:var(--deep);flex-shrink:0;}
+.task-txt{flex:1;color:var(--text);line-height:1.4;}
+.task-txt.done{text-decoration:line-through;color:#9CA3AF;}
+.task-del{background:none;border:none;cursor:pointer;color:#C5D5D8;font-size:18px;padding:0 4px;line-height:1;min-width:28px;}
+textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;font-family:var(--font);color:var(--text);background:var(--bg);resize:vertical;min-height:80px;outline:none;line-height:1.6;}
+textarea:focus{border-color:var(--mid);background:#fff;}
+.blocker-wrap textarea{border-left:3px solid #D4820A;}
+.score-btns{display:flex;gap:6px;margin-top:4px;}
+.score-btn{flex:1;height:42px;border:1px solid var(--border);border-radius:8px;background:var(--pale);font-size:15px;font-weight:500;cursor:pointer;color:var(--gray);font-family:var(--font);}
+.score-btn.sel{background:var(--deep);border-color:var(--deep);color:#fff;}
+.ms-form{display:flex;flex-direction:column;gap:5px;}
+.ms-form-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--pale);border-radius:8px;}
+.ms-form-name{flex:1;color:var(--text);font-size:13px;line-height:1.4;}
+.ms-form-dl{font-size:11px;color:var(--gray);white-space:nowrap;}
+.ms-sel{border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:12px;font-family:var(--font);color:var(--text);background:#fff;cursor:pointer;outline:none;min-width:68px;}
+/* Task master */
+.tasks-master{padding:0 1rem 1rem;}
+.tmaster-hdr{font-size:11px;font-weight:500;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.65rem;display:flex;align-items:center;justify-content:space-between;}
+.week-block{margin-bottom:.6rem;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.week-block.wind-down{border-color:#E8D5B0;}
+.wbhdr{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--pale);cursor:pointer;user-select:none;gap:8px;}
+.week-block.wind-down .wbhdr{background:#FDF8F0;}
+.wbtitle{font-size:13px;font-weight:500;color:var(--deep);display:flex;align-items:center;flex-wrap:wrap;gap:4px;}
+.wbrange{font-size:11px;color:var(--gray);}
+.wbbody{padding:10px;display:flex;flex-direction:column;gap:6px;}
+.wbbody.collapsed{display:none;}
+.phase-tag{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:500;white-space:nowrap;}
+.phase-main{background:#DCE9EC;color:var(--deep);}
+.phase-wind{background:#FEF3E2;color:var(--warn);}
+.tmi{display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--white);border-radius:8px;border-left:3px solid transparent;}
+.tmi.must{border-left-color:var(--deep);}.tmi.opt{border-left-color:#C5D5D8;}
+.tmi.completed{border-left-color:var(--success);opacity:.55;}
+.tmi-chk{width:18px;height:18px;cursor:pointer;accent-color:var(--deep);flex-shrink:0;margin-top:2px;}
+.tmi-body{flex:1;min-width:0;}
+.tmi-name{font-size:13px;font-weight:500;color:var(--text);line-height:1.4;}
+.tmi-name.stk{text-decoration:line-through;color:#9CA3AF;}
+.tmi-kpi{font-size:12px;color:var(--gray);margin-top:3px;line-height:1.55;}
+.tmi-tags{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;}
+.tmi-tag{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:500;white-space:nowrap;}
+.tag-must{background:#DCE9EC;color:var(--deep);}
+.tag-opt{background:#F3F4F6;color:var(--gray);}
+.tag-dl{background:#FEF3E2;color:var(--warn);}
+.tag-done{background:#E1F5EE;color:var(--success);}
+/* Daily practice checklist */
+.daily-check{background:var(--pale);border-radius:8px;padding:10px 12px;margin-top:6px;}
+.daily-check-lbl{font-size:11px;font-weight:500;color:var(--gray);margin-bottom:8px;}
+.daily-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.day-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;background:#fff;border-radius:7px;border:1px solid var(--border);cursor:pointer;}
+.day-btn.checked{background:#E1F5EE;border-color:var(--success);}
+.day-name{font-size:10px;color:var(--gray);}
+.day-chk{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;}
+.day-btn.checked .day-chk{background:var(--success);border-color:var(--success);color:#fff;font-size:11px;}
+.day-btn.checked .day-name{color:var(--success);font-weight:500;}
+/* Field blocks */
+.field-block{background:var(--pale);border-radius:8px;padding:10px 12px;margin-top:6px;}
+.field-block-lbl{font-size:11px;color:var(--gray);font-weight:500;margin-bottom:7px;line-height:1.4;}
+.field-row{display:grid;gap:6px;margin-bottom:6px;}
+.field-row.r2{grid-template-columns:1fr 1fr;}
+.field-row.r3{grid-template-columns:1fr 1fr 1fr;}
+.field-item label{font-size:10px;color:var(--gray);display:block;margin-bottom:3px;}
+.f-inp{width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 9px;font-size:13px;font-family:var(--font);color:var(--text);background:#fff;outline:none;}
+.f-inp:focus{border-color:var(--mid);}
+.f-inp::placeholder{color:#B0BEC5;}
+.field-sep{border:none;border-top:1px solid var(--border);margin:8px 0;}
+.field-post-num{font-size:11px;font-weight:500;margin-bottom:4px;}
+.ig-rec{display:inline-flex;align-items:center;gap:4px;background:#E1F5EE;color:var(--success);font-size:10px;padding:2px 8px;border-radius:8px;margin-top:5px;}
+/* Shoot plan */
+.shoot-block{background:#FDF8F0;border:1px solid #E8D5B0;border-radius:8px;padding:10px 12px;margin-top:6px;}
+.shoot-block-lbl{font-size:11px;color:var(--warn);font-weight:500;margin-bottom:7px;}
+.shoot-item{background:#fff;border-radius:7px;padding:9px 10px;margin-bottom:6px;border-left:2px solid #D4820A;}
+.shoot-item-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.shoot-num{font-size:11px;font-weight:500;color:var(--warn);}
+.shoot-del{background:none;border:none;cursor:pointer;color:#C5D5D8;font-size:16px;padding:0 4px;}
+.s-inp{width:100%;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-size:13px;font-family:var(--font);color:var(--text);background:#fff;outline:none;}
+.s-inp:focus{border-color:#D4820A;}
+.s-lbl{font-size:10px;color:var(--gray);margin-bottom:3px;}
+.btn-add-shoot{width:100%;padding:9px;background:none;border:1px dashed #D4820A;border-radius:7px;cursor:pointer;font-size:13px;color:var(--warn);font-family:var(--font);margin-top:2px;}
+/* LV Framework - new design */
+.lv-framework{background:var(--pale);border-radius:8px;padding:10px 12px;margin-top:6px;}
+.lv-framework-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;flex-wrap:wrap;}
+.lv-framework-title{font-size:13px;font-weight:500;color:var(--deep);}
+.lv-add-btn{font-size:11px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;color:var(--mid);font-family:var(--font);white-space:nowrap;}
+.lv-hint{font-size:11px;color:#9CA3AF;font-style:italic;margin-top:6px;}
+.lv-item{background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:6px;border-left:3px solid var(--mid);position:relative;}
+.lv-item-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.lv-badge{font-size:12px;font-weight:600;color:var(--deep);background:var(--light);padding:3px 10px;border-radius:6px;white-space:nowrap;}
+.lv-badge-inp{font-size:12px;font-weight:600;color:var(--deep);background:var(--light);border:1px solid var(--border);border-radius:6px;padding:3px 8px;width:70px;font-family:var(--font);outline:none;text-align:center;}
+.lv-drag{cursor:grab;color:#C5D5D8;font-size:16px;padding:0 4px;user-select:none;touch-action:none;}
+.lv-drag:active{cursor:grabbing;}
+.lv-del-btn{background:none;border:none;cursor:pointer;color:#C5D5D8;font-size:16px;margin-left:auto;padding:0 4px;}
+.lv-del-btn:active{color:var(--danger);}
+.lv-grid-4{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.lv-inp{width:100%;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-size:12px;font-family:var(--font);color:var(--text);background:var(--bg);outline:none;}
+.lv-inp:focus{border-color:var(--mid);background:#fff;}
+.lv-inp-full{width:100%;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-size:12px;font-family:var(--font);color:var(--text);background:var(--bg);outline:none;resize:none;min-height:60px;overflow:hidden;;resize:none;overflow:hidden;}
+.lv-inp-full:focus{border-color:var(--mid);background:#fff;}
+.lv-field-lbl{font-size:10px;color:var(--gray);margin-bottom:3px;}
+.lv-item.dragging{opacity:.4;border:2px dashed var(--mid);}
+.lv-item.drag-over{border-top:3px solid var(--deep);}
+/* Teaching content (per-LV detail) */
+.teach-block{background:#F0F7F8;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-top:4px;}
+.teach-block-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:6px;}
+.teach-block-title{font-size:11px;font-weight:500;color:var(--mid);}
+.teach-step{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;background:#fff;border-radius:7px;margin-bottom:5px;border-left:2px solid var(--border);}
+.teach-step-num{font-size:10px;font-weight:600;color:var(--mid);min-width:20px;margin-top:1px;}
+.teach-step-inp{flex:1;border:none;background:transparent;font-size:12px;font-family:var(--font);color:var(--text);outline:none;resize:none;min-height:22px;line-height:1.5;;resize:none;overflow:hidden;min-height:36px;}
+.teach-step-del{background:none;border:none;cursor:pointer;color:#C5D5D8;font-size:14px;padding:0 3px;flex-shrink:0;}
+.teach-step-drag{cursor:grab;color:#C5D5D8;font-size:14px;padding:0 3px;flex-shrink:0;user-select:none;}
+.btn-add-step{width:100%;padding:6px;background:none;border:1px dashed var(--border);border-radius:6px;cursor:pointer;font-size:12px;color:var(--gray);font-family:var(--font);margin-top:3px;}
+.teach-note{width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;font-family:var(--font);color:var(--text);background:#fff;resize:vertical;min-height:50px;outline:none;margin-top:5px;}
+/* Save bar */
+.save-bar{border-top:1px solid var(--border);padding:.7rem 1rem;display:flex;align-items:center;justify-content:space-between;}
+.save-info{font-size:12px;color:var(--gray);}
+.save-info strong{color:var(--mid);}
+.save-btns{display:flex;gap:8px;}
+.btn-save{background:var(--deep);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font);}
+.btn-clr{background:none;color:var(--gray);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;cursor:pointer;font-family:var(--font);}
+hr.sep{border:none;border-top:1px solid var(--border);margin:.5rem 0;}
+/* Hist */
+.hist-section{padding:0 1rem 1.5rem;}
+.hist-title{font-size:11px;font-weight:500;color:var(--gray);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem;}
+.hist-list{display:flex;flex-direction:column;gap:7px;}
+.hist-item{background:var(--pale);border:1px solid var(--border);border-radius:9px;padding:.8rem 1rem;cursor:pointer;}
+.hist-top{display:flex;justify-content:space-between;margin-bottom:4px;gap:8px;}
+.hist-week{font-size:13px;font-weight:500;color:var(--deep);}
+.hist-score{font-size:12px;background:var(--light);color:var(--deep);padding:2px 8px;border-radius:8px;font-weight:500;white-space:nowrap;}
+.hist-prev{font-size:12px;color:var(--gray);line-height:1.4;}
+/* Modal */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:flex-end;justify-content:center;}
+.modal.open{display:flex;}
+.modal-box{background:#fff;border-radius:16px 16px 0 0;padding:1.25rem 1rem;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;}
+.modal-box h3{font-size:15px;font-weight:600;color:var(--deep);margin-bottom:1rem;}
+.wk-list{display:flex;flex-direction:column;gap:5px;overflow-y:auto;}
+.wk-opt{padding:12px 14px;border-radius:10px;cursor:pointer;font-size:14px;color:var(--text);border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.wk-opt.cur{background:var(--light);border-color:var(--deep);color:var(--deep);font-weight:500;}
+.modal-close{margin-top:.85rem;width:100%;padding:12px;background:none;border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:14px;color:var(--gray);font-family:var(--font);}
+/* Toast */
+.toast{position:fixed;bottom:5rem;left:50%;transform:translateX(-50%) translateY(10px);background:var(--deep);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all .2s;pointer-events:none;z-index:999;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+/* Responsive */
+@media(max-width:600px){
+  .hdr-logo span{display:none;}
+  .dash{grid-template-columns:1fr;}
+  .two-col{grid-template-columns:1fr;}
+  .field-row.r3{grid-template-columns:1fr;}
+  .field-row.r2{grid-template-columns:1fr;}
+  .lv-grid-4{grid-template-columns:1fr;}
+  .daily-grid{grid-template-columns:repeat(7,1fr);}
+  .c-tab{padding:10px 12px;font-size:13px;}
+}
+@media(min-width:601px) and (max-width:900px){
+  .dash{grid-template-columns:1fr 1fr;}
+  .field-row.r3{grid-template-columns:1fr 1fr;}
+}
+
+/* ── Founder panel ── */
+.founder-panel-inner{padding:1rem;}
+.founder-week-block{margin-bottom:.6rem;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.founder-wbhdr{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#F3E8FF;cursor:pointer;gap:8px;}
+.founder-wbtitle{font-size:13px;font-weight:500;color:#6B21A8;display:flex;align-items:center;flex-wrap:wrap;gap:4px;}
+.founder-wbbody{padding:10px;display:flex;flex-direction:column;gap:6px;}
+.founder-wbbody.collapsed{display:none;}
+.founder-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;background:var(--white);border-radius:8px;border-left:3px solid #A855F7;}
+.founder-item.status-done{border-left-color:var(--success);}
+.founder-item.status-upcoming{border-left-color:var(--border);}
+.founder-item-body{flex:1;}
+.founder-item-name{font-size:13px;font-weight:500;color:var(--text);}
+.founder-item-note{font-size:12px;color:var(--gray);margin-top:3px;line-height:1.5;}
+.founder-status{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:500;white-space:nowrap;flex-shrink:0;}
+.s-done{background:#E1F5EE;color:var(--success);}
+.s-ongoing{background:#F3E8FF;color:#6B21A8;}
+.s-upcoming{background:#F3F4F6;color:var(--gray);}
+.founder-note-area{padding:1rem 1rem 0;}
+.founder-note-label{font-size:11px;font-weight:500;color:#6B21A8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+
+/* ── Darren / Vivi panels ── */
+.founder-panel-wrap{padding:1rem;}
+.founder-intro{border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:12px;line-height:1.6;}
+.founder-intro.darren{background:#F3F4F6;color:#4B5563;}
+.founder-intro.vivi{background:#FEF0E6;color:#C2570A;}
+.founder-intro strong{font-size:13px;display:block;margin-bottom:3px;}
+.fcat-block{margin-bottom:.75rem;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.fcat-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;cursor:pointer;user-select:none;gap:8px;}
+.fcat-hdr.darren{background:#F9FAFB;}
+.fcat-hdr.vivi{background:#FEF6F0;}
+.fcat-title{font-size:13px;font-weight:500;}
+.fcat-title.darren{color:#4B5563;}
+.fcat-title.vivi{color:#C2570A;}
+.fcat-body{padding:8px 10px;display:flex;flex-direction:column;gap:5px;}
+.fcat-body.collapsed{display:none;}
+.ftask-row{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;background:var(--white);border-radius:8px;border-left:3px solid transparent;}
+.ftask-row.must.darren-c{border-left-color:#4B5563;}
+.ftask-row.must.vivi-c{border-left-color:#C2570A;}
+.ftask-row.opt{border-left-color:#C5D5D8;}
+.ftask-row.f-done{border-left-color:var(--success);opacity:.6;}
+.ftask-chk{width:18px;height:18px;cursor:pointer;flex-shrink:0;margin-top:2px;}
+.ftask-chk.darren-acc{accent-color:#4B5563;}
+.ftask-chk.vivi-acc{accent-color:#C2570A;}
+.ftask-body{flex:1;min-width:0;}
+.ftask-name{font-size:13px;font-weight:500;color:var(--text);line-height:1.4;}
+.ftask-name.stk{text-decoration:line-through;color:#9CA3AF;}
+.ftask-kpi{font-size:12px;color:var(--gray);margin-top:2px;line-height:1.5;}
+.ftask-tags{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;}
+.ftask-ms{margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border);}
+.ftask-ms-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem;}
+.ftask-ms-title.darren{color:#4B5563;}
+.ftask-ms-title.vivi{color:#C2570A;}
+.fms-row{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--pale);border-radius:8px;margin-bottom:5px;}
+.fms-name{flex:1;color:var(--text);font-size:13px;}
+.fms-dl{font-size:11px;color:var(--gray);white-space:nowrap;}
+.fms-sel{border:1px solid var(--border);border-radius:6px;padding:5px 6px;font-size:12px;font-family:var(--font);color:var(--text);background:#fff;cursor:pointer;outline:none;min-width:68px;}
+.founder-note-wrap{padding:0 1rem 1.5rem;}
+.founder-note-lbl{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+.founder-note-lbl.darren{color:#4B5563;}
+.founder-note-lbl.vivi{color:#C2570A;}
+
+/* ── Founder sub-tasks ── */
+.fsub-wrap{margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);}
+.fsub-list{display:flex;flex-direction:column;gap:4px;margin-bottom:5px;}
+.fsub-row{display:flex;align-items:center;gap:7px;padding:6px 9px;background:var(--pale);border-radius:7px;font-size:12px;}
+.fsub-chk{width:15px;height:15px;cursor:pointer;flex-shrink:0;}
+.fsub-chk.darren-acc{accent-color:#4B5563;}
+.fsub-chk.vivi-acc{accent-color:#C2570A;}
+.fsub-txt{flex:1;color:var(--text);line-height:1.4;}
+.fsub-txt.done{text-decoration:line-through;color:#9CA3AF;}
+.fsub-del{background:none;border:none;cursor:pointer;color:#C5D5D8;font-size:15px;padding:0 3px;line-height:1;}
+.fsub-del:active{color:var(--danger);}
+.fsub-add-row{display:flex;gap:5px;}
+.fsub-add-row input{flex:1;border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:12px;font-family:var(--font);color:var(--text);background:var(--bg);outline:none;min-width:0;}
+.fsub-add-row input.darren-fi:focus{border-color:#D4820A;background:#fff;}
+.fsub-add-row input.vivi-fi:focus{border-color:#D946A8;background:#fff;}
+.fsub-confirm-btn{border-radius:7px;padding:6px 12px;font-size:12px;font-family:var(--font);cursor:pointer;white-space:nowrap;border:1px solid;flex-shrink:0;}
+.fsub-confirm-btn.darren-btn{background:#F3F4F6;color:#4B5563;border-color:#4B5563;}
+.fsub-confirm-btn.vivi-btn{background:#FEF0E6;color:#C2570A;border-color:#C2570A;}
+.fsub-open-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;cursor:pointer;border:1px dashed;background:transparent;font-family:var(--font);margin-top:5px;}
+.fsub-open-btn.darren-btn{color:#4B5563;border-color:#4B5563;}
+.fsub-open-btn.vivi-btn{color:#C2570A;border-color:#C2570A;}
+.fsub-open-btn:hover{opacity:.8;}
+.fsub-input-wrap{display:none;margin-top:5px;}
+.fsub-input-wrap.open{display:flex;}
+/* ── Task completion date ── */
+.ftask-date-wrap{display:flex;align-items:center;gap:5px;margin-top:5px;}
+.ftask-date-lbl{font-size:10px;color:var(--gray);white-space:nowrap;}
+.ftask-date-inp{border:1px solid var(--border);border-radius:6px;padding:3px 7px;font-size:11px;font-family:var(--font);color:var(--text);background:#fff;outline:none;cursor:pointer;}
+.ftask-date-inp.darren-fi:focus{border-color:#4B5563;}
+.ftask-date-inp.vivi-fi:focus{border-color:#C2570A;}
+.ftask-date-done{font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;}
+.ftask-date-done.darren-d{background:#F3F4F6;color:#4B5563;}
+.ftask-date-done.vivi-d{background:#FEF0E6;color:#C2570A;}
+
+/* ── Per-coach color overrides ── */
+#panel-benson .sec-lbl{color:#1D6FA4;}
+#panel-benson .task-add input:focus{border-color:#1D6FA4;}
+#panel-benson textarea:focus{border-color:#1D6FA4;}
+#panel-benson .btn-plus:hover{background:#DBEAFE;border-color:#1D6FA4;color:#1D6FA4;}
+#panel-benson .ms-sel:focus{border-color:#1D6FA4;}
+#panel-benson .score-btn.sel{background:#1D6FA4;border-color:#1D6FA4;}
+#panel-benson .wbhdr:hover{background:#EEF6FD;}
+#panel-benson .phase-main{background:#DBEAFE;color:#1D6FA4;}
+#panel-benson .tmi.must{border-left-color:#1D6FA4;}
+#panel-benson .tmi-chk{accent-color:#1D6FA4;}
+#panel-benson .task-row input[type=checkbox]{accent-color:#1D6FA4;}
+#panel-benson .tmi-tag.tag-must{background:#DBEAFE;color:#1D6FA4;}
+#panel-benson .lv-add-btn:hover{border-color:#1D6FA4;color:#1D6FA4;}
+#panel-benson .lv-inp:focus{border-color:#1D6FA4;}
+#panel-benson .lv-inp-full:focus{border-color:#1D6FA4;}
+#panel-benson .btn-save{background:#1D6FA4;}
+#panel-benson .btn-save:hover{background:#155d8a;}
+#panel-benson .c-tab.active{color:#1D6FA4;border-bottom-color:#1D6FA4;}
+#panel-benson .ms-form-row input:focus{border-color:#1D6FA4;}
+#panel-benson .teach-block{border-color:#DBEAFE;}
+#panel-benson .teach-block-title{color:#1D6FA4;}
+#panel-benson .btn-add-step:hover{border-color:#1D6FA4;color:#1D6FA4;}
+#panel-benson .lv-framework{background:#EEF6FD;}
+#panel-benson .lv-item{border-left-color:#1D6FA4;}
+#panel-benson .lv-badge-inp{background:#DBEAFE;color:#1D6FA4;border-color:#B8D9EF;}
+#panel-benson .prog-fill{background:#1D6FA4;}
+#panel-benson .blocker-wrap textarea{border-left-color:#1D6FA4;}
+
+#panel-cc .sec-lbl{color:#1A7A4A;}
+#panel-cc .task-add input:focus{border-color:#1A7A4A;}
+#panel-cc textarea:focus{border-color:#1A7A4A;}
+#panel-cc .btn-plus:hover{background:#DCFCE7;border-color:#1A7A4A;color:#1A7A4A;}
+#panel-cc .ms-sel:focus{border-color:#1A7A4A;}
+#panel-cc .score-btn.sel{background:#1A7A4A;border-color:#1A7A4A;}
+#panel-cc .wbhdr:hover{background:#EDFAF3;}
+#panel-cc .phase-main{background:#DCFCE7;color:#1A7A4A;}
+#panel-cc .tmi.must{border-left-color:#1A7A4A;}
+#panel-cc .tmi-chk{accent-color:#1A7A4A;}
+#panel-cc .task-row input[type=checkbox]{accent-color:#1A7A4A;}
+#panel-cc .tmi-tag.tag-must{background:#DCFCE7;color:#1A7A4A;}
+#panel-cc .lv-add-btn:hover{border-color:#1A7A4A;color:#1A7A4A;}
+#panel-cc .lv-inp:focus{border-color:#1A7A4A;}
+#panel-cc .lv-inp-full:focus{border-color:#1A7A4A;}
+#panel-cc .btn-save{background:#1A7A4A;}
+#panel-cc .btn-save:hover{background:#145e38;}
+#panel-cc .teach-block{border-color:#DCFCE7;}
+#panel-cc .teach-block-title{color:#1A7A4A;}
+#panel-cc .btn-add-step:hover{border-color:#1A7A4A;color:#1A7A4A;}
+#panel-cc .lv-framework{background:#EDFAF3;}
+#panel-cc .lv-item{border-left-color:#1A7A4A;}
+#panel-cc .lv-badge-inp{background:#DCFCE7;color:#1A7A4A;border-color:#A8DCC0;}
+#panel-cc .prog-fill{background:#1A7A4A;}
+#panel-cc .blocker-wrap textarea{border-left-color:#1A7A4A;}
+#panel-cc .shoot-block{background:#EEF9F4;border-color:#A8DCC0;}
+#panel-cc .shoot-block-lbl{color:#1A7A4A;}
+#panel-cc .shoot-item{border-left-color:#1A7A4A;}
+#panel-cc .s-inp:focus{border-color:#1A7A4A;}
+#panel-cc .btn-add-shoot{border-color:#1A7A4A;color:#1A7A4A;}
+#panel-cc .btn-add-shoot:hover{background:#EDFAF3;}
+
+/* Dashboard progress bars use per-coach color via inline style — no override needed */
+/* Darren gray */
+#panel-darren .founder-intro{background:#F3F4F6;color:#4B5563;}
+#panel-darren .btn-save{background:#4B5563;}
+#panel-darren .btn-save:hover{background:#374151;}
+/* Vivi orange */
+#panel-vivi .founder-intro{background:#FEF0E6;color:#C2570A;}
+#panel-vivi .btn-save{background:#C2570A;}
+#panel-vivi .btn-save:hover{background:#a3470a;}
+
+</style>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+<header class="hdr">
+  <div class="hdr-logo">SKI-O 雪圈 <span>遠端工作週報 4/23–6/30</span></div>
+  <div class="hdr-right">
+    <span id="sync-status" style="font-size:11px;color:var(--light);margin-right:6px;transition:opacity .3s;"></span>
+    <button class="hdr-save" onclick="saveCurrentCoach()" id="hdr-save-btn">儲存</button>
+    <button class="week-pill" onclick="openWeekModal()">📅 <span id="cur-wk-lbl">第 1 週</span></button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="dash">
+    <div class="dcard"><div class="dcard-title">關鍵里程碑</div><div class="ms-list" id="dash-ms"></div></div>
+    <div class="dcard"><div class="dcard-title">整體進度</div><div class="prog-stack" id="dash-prog"></div></div>
+    <div class="dcard"><div class="dcard-title">本週概況</div><div class="stat-grid" id="dash-stats"></div></div>
+  </div>
+  <div class="coach-nav">
+    <div class="c-tab active" onclick="switchCoach('benson',this)"><div class="av" style="background:#DBEAFE;color:#1D6FA4;">班</div>班森</div>
+    <div class="c-tab" onclick="switchCoach('cc',this)"><div class="av" style="background:#DCFCE7;color:#1A7A4A;">CC</div>CC</div>
+    <div class="c-tab" onclick="switchCoach('darren',this)"><div class="av" style="background:#F3F4F6;color:#4B5563;">D</div>Darren</div>
+    <div class="c-tab" onclick="switchCoach('vivi',this)"><div class="av" style="background:#FEF0E6;color:#C2570A;">V</div>Vivi</div>
+  </div>
+  <div id="panel-benson" class="c-panel active"></div>
+  <div id="panel-cc" class="c-panel"></div>
+  <div id="panel-darren" class="c-panel"></div>
+  <div id="panel-vivi" class="c-panel"></div>
+</div>
+
+<div class="modal" id="wk-modal">
+  <div class="modal-box">
+    <h3>選擇週次</h3>
+    <div class="wk-list" id="wk-list"></div>
+    <button class="modal-close" onclick="closeWeekModal()">關閉</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const WEEKS=[
+  {lbl:'第 1 週',range:'4/23–5/4'},{lbl:'第 2 週',range:'5/5–5/11'},
+  {lbl:'第 3 週',range:'5/12–5/18'},{lbl:'第 4 週',range:'5/19–5/25'},
+  {lbl:'第 5 週',range:'5/26–6/1'},{lbl:'第 6 週',range:'6/2–6/8'},
+  {lbl:'第 7 週',range:'6/9–6/15'},{lbl:'第 8 週',range:'6/16–6/22'},
+  {lbl:'第 9 週',range:'6/23–6/30'},
+];
+const DAYS=['一','二','三','四','五','六','日'];
+const IG_SEASON=['春末換季：春雪、裝備話題','五一連假：戶外活動話題','母親節：親子家庭話題','滑雪淡季：體能訓練話題','夏日室內：避暑運動話題','暑假開始：暑期課程話題','開幕倒數：教室搶先看','開幕倒數：課程體驗感','開幕週：活動優惠公告','開幕後：學員故事'];
+const VID_SEASON=['「春末還能在哪裡滑雪？」','「夏天到了，雪季結束了嗎？」','「夏天也繼續練，室內教室」','「為什麼夏天要練滑雪？」','「下雨沒地方去？室內滑雪」','「端午假期結束，雪圈沒有假」'];
+const SHOOT_LABELS={indoor:'📷 教室進場拍攝規劃',trial:'🎬 試營運拍攝規劃',countdown:'⏳ 開幕倒數拍攝規劃',opening:'🚀 正式開幕影片規劃'};
+
+// ──────────────────────────────────────
+// LV DATA (Vivi preset + editable)
+// ──────────────────────────────────────
+const LV_BENSON_DEFAULT = [
+  {lv:'LV0',cat:'初學',skill:'完全初學',content:'基礎穿裝備教學、介紹雪板裝備、單腳 skating、單腳階登、單腳正面滑行、雙腳正面滑行',goal:'可單腳正面滑行（開機器）或雙腳滑行控制滑行速度（非等速）',steps:[
+    {t:'課程大綱影片說明'},
+    {t:'基礎穿裝備教學'},
+    {t:'介紹雪板裝備'},
+    {t:'單腳控制雪板'},
+    {t:'單腳 skating'},
+    {t:'上機說明'},
+    {t:'單腳階登'},
+    {t:'單腳正面滑行（關機器）'},
+    {t:'（若學員較慢）→ 單腳正面滑行（開機器）'},
+    {t:'（若學員正常）→ 雙腳正面滑行（關機器）'},
+  ],note:'若學員學習較慢，可在單腳正面滑行（關機器）後，就到單腳正面滑行（開機器）；若學員程度皆正常，可教學雙腳正面滑行（關機器）'},
+  {lv:'LV1',cat:'初階',skill:'Heel side 滑行',content:'雙腳 Heel side 滑行（關機器＋開機器滑行）、Heel side 等速滑行',goal:'可雙腳滑行控制滑行速度（等速滑行）',steps:[
+    {t:'複習單腳滑行動作'},
+    {t:'教學雙腳綁著站起來'},
+    {t:'雙腳 Heel side 滑行（關機器）'},
+    {t:'雙腳 Heel side 滑行（開機器）'},
+  ],note:''},
+  {lv:'LV2',cat:'初階',skill:'Heel side 控制方向',content:'正面滑行、正面落葉飄、正面鐘擺飄',goal:'',steps:[],note:''},
+  {lv:'LV3',cat:'初階',skill:'Toe side 滑行',content:'',goal:'',steps:[],note:''},
+  {lv:'LV4',cat:'初階',skill:'Toe side 控制方向',content:'',goal:'',steps:[],note:''},
+  {lv:'LV5',cat:'中階',skill:'Heel side J Turn',content:'',goal:'',steps:[],note:''},
+  {lv:'LV6',cat:'中階',skill:'Toe side J Turn',content:'',goal:'',steps:[],note:''},
+  {lv:'LV7',cat:'中階',skill:'Heel side C Turn',content:'',goal:'',steps:[],note:''},
+  {lv:'LV8',cat:'中階',skill:'Toe side C Turn',content:'',goal:'',steps:[],note:''},
+  {lv:'LV9',cat:'中階',skill:'Beginner Turn',content:'',goal:'',steps:[],note:''},
+  {lv:'LV10',cat:'高階',skill:'S Turn（S 型轉彎）',content:'',goal:'',steps:[],note:''},
+  {lv:'LV11',cat:'高階',skill:'Link Turn（連續轉彎）',content:'',goal:'',steps:[],note:''},
+  {lv:'LV12',cat:'高階',skill:'Pop In Turn',content:'',goal:'',steps:[],note:''},
+  {lv:'LV13',cat:'高階',skill:'Short Turn（小轉）',content:'',goal:'',steps:[],note:''},
+];
+const LV_CC_DEFAULT = [
+  {lv:'LV0',cat:'初學',skill:'完全初學',content:'基礎穿裝備教學、介紹雪板裝備、原地 Pizza 練習、平地移動、階登、梨式練習、梨式煞車',goal:'可梨式煞車（關機器）或梨式煞車（開機器）',steps:[
+    {t:'課程大綱影片說明'},
+    {t:'基礎穿裝備教學'},
+    {t:'介紹雪板裝備'},
+    {t:'單腳平地滑行練習'},
+    {t:'雙腳平地移動練習'},
+    {t:'上機說明'},
+    {t:'階登'},
+    {t:'梨式滑行（關機器）'},
+    {t:'（若學員較慢）→ 僅練習梨式滑行（關機器）'},
+    {t:'（若學員正常）→ 梨式滑行（開機器），需看到可控制速度'},
+  ],note:'若學員學習較慢，可僅練習梨式滑行（關機器）；若學員程度皆正常，可教學梨式滑行（開機器），需看到可以控制速度'},
+  {lv:'LV1',cat:'初階',skill:'梨式滑行',content:'梨式煞車、梨式滑行（關機器＋開機器滑行）、梨式等速滑行',goal:'可梨式轉彎練習',steps:[
+    {t:'複習梨式滑行（關機器）'},
+    {t:'梨式滑行（開機器）'},
+    {t:'教學坐著如何站起來和側轉正練習'},
+    {t:'梨式定速滑行'},
+    {t:'梨式轉彎練習'},
+  ],note:''},
+  {lv:'LV2',cat:'初階',skill:'基礎梨式轉彎',content:'梨式滑行、梨式滑行控制方向',goal:'',steps:[],note:''},
+  {lv:'LV3',cat:'初階',skill:'半梨式轉彎（初）',content:'半梨式轉彎分解練習',goal:'',steps:[],note:''},
+  {lv:'LV4',cat:'中階',skill:'半梨式轉彎（中）',content:'',goal:'',steps:[],note:''},
+  {lv:'LV5',cat:'中階',skill:'側殺（初）',content:'',goal:'',steps:[],note:''},
+  {lv:'LV6',cat:'中階',skill:'側殺或 J Turn（中）－名稱待訂',content:'',goal:'',steps:[],note:''},
+  {lv:'LV7',cat:'中階',skill:'斜滑降',content:'',goal:'',steps:[],note:''},
+  {lv:'LV8',cat:'高階',skill:'平行轉彎（初）',content:'',goal:'',steps:[],note:''},
+  {lv:'LV9',cat:'高階',skill:'平行轉彎（中）',content:'',goal:'',steps:[],note:''},
+  {lv:'LV10',cat:'高階',skill:'進階平行轉彎＋點杖練習',content:'',goal:'',steps:[],note:''},
+  {lv:'LV11',cat:'高階',skill:'Short Turn',content:'',goal:'',steps:[],note:''},
+  {lv:'LV12',cat:'高階',skill:'倒滑',content:'',goal:'',steps:[],note:''},
+  {lv:'LV13',cat:'高階',skill:'上下身分離轉彎',content:'',goal:'',steps:[],note:''},
+];
+
+// ──────────────────────────────────────
+// TASK DEFINITIONS
+// ──────────────────────────────────────
+const TASKS={
+  benson:[
+    {w:0,wind:false,items:[
+      {id:'b0a',must:true,name:'合約簽署',kpi:'完成籌備期合約簽署',dl:'4/30'},
+      {id:'b0b',must:true,name:'單板課程級別框架定義（分類、滑行程度、課程內容、程度目標）',kpi:'根據 Vivi 提供的框架，完成每個級別的分類、滑行程度、課程內容、程度目標，LV0–LV13 全部完成，詳細教學步驟於本週同步填入',dl:'5/4',lv:true,lvKey:'benson_lv',lvBasic:true},
+      {id:'b0c',must:false,name:'教練內部訓練課程框架',kpi:'設計教練互訓課程初步架構（目標、方式、頻率）',dl:'5/4'},
+      {id:'b1a',must:true,name:'單板各級詳細教學步驟（LV0–LV4）',kpi:'在課程框架中逐條填入 LV0–LV4 的詳細教學步驟，並補充備註說明（含常見錯誤與修正方式）',dl:'5/4',lv:true,lvKey:'benson_lv',lvFull:true},
+      {id:'b1b',must:true,name:'單板 LV0–LV4 學員評估標準',kpi:'制定 LV0–LV4 晉級標準，每級至少 3 項可量化動作指標',dl:'5/4'},
+      {id:'b2a',must:true,name:'單板各級詳細教學步驟（LV5–LV9）',kpi:'完成 LV5–LV9 每級的詳細教學步驟，並補充常見錯誤與修正方式',dl:'5/4'},
+      {id:'b2b',must:true,name:'單板 LV5–LV9 學員評估標準',kpi:'制定 LV5–LV9 晉級標準，每級至少 3 項可量化動作指標',dl:'5/4'},
+    ]},
+    {w:1,wind:false,items:[
+      {id:'b3a',must:true,name:'單板各級詳細教學步驟（LV10–LV13）',kpi:'完成 LV10–LV13 每級的詳細教學步驟，並補充常見錯誤與修正方式',dl:'5/18'},
+      {id:'b3b',must:true,name:'教練上課 SOP 完整版',kpi:'完成上課前、中、後全流程 SOP，含開機、接待學員、課中管理、下課收尾、緊急處理',dl:'5/18'},
+    ]},
+    {w:1,wind:false,items:[
+      {id:'b4a',must:true,name:'完整課程手冊彙整交付',kpi:'將所有級別教學內容、評估標準、SOP、規範整合為完整課程手冊，交付給Vivi 和 Darren，5/25 前完成',dl:'5/25'},
+      {id:'b4b',must:true,name:'夏令營課程框架',kpi:'設計暑期夏令營課程架構（天數、每日行程、適合年齡、費用概估），5/25 前完成',dl:'5/25'},
+      {id:'b4c',must:false,name:'教練行為規範文件',kpi:'完成教練形象規範、學員互動準則、安全規範，格式為可對照檢核的條列文件',dl:'5/25'},
+    ]},
+    {w:1,wind:false,items:[
+      {id:'b5a',must:true,name:'跳台公園器材規劃提案',kpi:'研究至少 2–3 家廠商，完成規格比較、報價詢價、適用級別建議，提交給Vivi 和 Darren，6/1 前完成',dl:'6/1'},
+    ]},
+    {w:1,wind:false,items:[
+      {id:'b6a',must:true,name:'課程手冊補充修訂',kpi:'回顧整份手冊，完成最後補充與修訂，6/8 前確認定版',dl:'6/8'},
+      {id:'b6b',must:false,name:'學員進度追蹤表設計',kpi:'設計可手寫或電子填寫的學員級別進度追蹤表',dl:'6/8'},
+      {id:'b_june_6_a',must:true,name:'熟悉預約系統與課程商品設定',kpi:'配合Vivi 和 Darren完成預約系統操作、課程商品頁面設定，確認資料無誤',dl:'6/8'},
+      {id:'b_june_6_b',must:true,name:'熟悉課程方案和會員制度',kpi:'完整閱讀並理解各課程方案、會員等級制度、優惠規則，能向學員正確說明',dl:'6/8'},
+    ]},
+    {w:1,wind:true,items:[
+      {id:'b7a',must:true,name:'課程手冊最終定版交付',kpi:'確認課程手冊已定版，完成最終存檔交付給Vivi 和 Darren',dl:'6/15'},
+      {id:'b_june_7_a',must:true,name:'每日對話練習（使用 SKI-O 練習系統）',kpi:'每日使用 SKI-O 對話練習系統完成指定時長練習，熟悉課程查詢、報名流程、費用說明、現場應對',dl:'6/15',daily:true,dailyKey:'benson_daily_7'},
+      {id:'b_june_7_b',must:true,name:'現場應對模擬練習',kpi:'完成現場接待流程模擬（迎賓、帶位、課前說明、課後送客），確認每個環節熟悉',dl:'6/15'},
+    ]},
+    {w:1,wind:true,items:[
+      {id:'b8a',must:false,name:'熟悉系統與課程商品設定',kpi:'配合Vivi 和 Darren完成系統操作，確認課程資料建檔無誤',dl:'6/22'},
+      {id:'b_june_8_a',must:true,name:'每日對話練習（使用 SKI-O 練習系統）',kpi:'每日使用 SKI-O 對話練習系統完成指定時長練習',dl:'6/22',daily:true,dailyKey:'benson_daily_8'},
+      {id:'b_june_8_b',must:true,name:'客服對話綜合複習',kpi:'複習所有對話情境，針對卡點向Vivi 和 Darren提問確認',dl:'6/22'},
+    ]},
+    {w:1,wind:true,items:[
+      {id:'b9a',must:false,name:'開幕前最後確認',kpi:'確認課程手冊、評估表、SOP 是否齊備，提出最後缺漏清單',dl:'6/30'},
+      {id:'b_june_9_a',must:true,name:'每日對話練習（使用 SKI-O 練習系統）',kpi:'每日使用 SKI-O 對話練習系統完成指定時長練習',dl:'6/30',daily:true,dailyKey:'benson_daily_9'},
+      {id:'b_june_9_b',must:false,name:'試營運前最後自我檢核',kpi:'確認預約系統、課程方案、客服話術、現場流程是否全部熟悉，提出最後問題清單',dl:'6/30'},
+    ]},
+  ],
+  cc:[
+    {w:0,wind:false,items:[
+      {id:'c_eq_0a',must:true,name:'單雙板裝備需求盤點',kpi:'根據教室需求，盤點單板（Snowboard）和雙板（Ski）裝備的品項、數量、尺寸需求，完成採購需求清單，提交給Vivi 和 Darren確認',dl:'4/27'},
+      {id:'c_eq_0b',must:true,name:'廠商研究與詢價啟動',kpi:'研究台灣及海外單雙板裝備廠商（板商、靴商、安全帽、護具等），列出至少 3–5 家備選廠商，啟動初步詢價',dl:'4/27'},
+      {id:'c0a',must:true,name:'合約簽署',kpi:'完成籌備期合約簽署',dl:'4/30'},
+      {id:'c0b',must:true,name:'雙板課程級別框架定義（分類、滑行程度、課程內容、程度目標）',kpi:'根據 Vivi 提供的框架，完成每個級別的分類、滑行程度、課程內容、程度目標，LV0–LV13 全部完成，詳細教學步驟於第 2 週起填入',dl:'5/4',lv:true,lvKey:'cc_lv',lvBasic:true},
+      {id:'c0c',must:true,name:'現有冬季影片素材盤點',kpi:'整理所有可用素材：影片數量、品質評估（可用/需補拍）、適合剪輯方向，完成清單',dl:'5/4'},
+      {id:'c1a',must:true,name:'雙板各級詳細教學步驟（LV0–LV4）',kpi:'在課程框架中逐條填入 LV0–LV4 的詳細教學步驟，並補充備註說明（含常見錯誤與修正方式）',dl:'5/4',lv:true,lvKey:'cc_lv',lvFull:true},
+      {id:'c1b',must:true,name:'雙板 LV0–LV4 學員評估標準',kpi:'制定 LV0–LV4 晉級標準，每級至少 3 項可量化動作指標',dl:'5/4'},
+    ]},
+    {w:1,wind:false,items:[
+      {id:'c_eq_1a',must:true,name:'單雙板裝備廠商比較表',kpi:'完成主要裝備品項的廠商比較表（含品牌、規格、單價、MOQ、交期），每品項至少 2 家廠商比較，提交給Vivi 和 Darren',dl:'5/11'},
+      {id:'c_eq_1b',must:false,name:'廠商接洽進度更新',kpi:'回報各廠商詢價進度，紀錄溝通內容與後續待跟進事項',dl:'5/11'},
+      {id:'c2a',must:true,name:'雙板各級詳細教學步驟（LV5–LV9）',kpi:'完成 LV5–LV9 每級的詳細教學步驟，並補充常見錯誤與修正方式',dl:'5/11'},
+      {id:'c2b',must:true,name:'雙板 LV5–LV9 學員評估標準',kpi:'制定 LV5–LV9 晉級標準，每級至少 3 項可量化動作指標',dl:'5/11'},
+      {id:'c1vid',must:true,name:'本週短影音 ×1（完成後交 Vivi 發布）',kpi:'',dl:'5/11',vid:true,vidKey:'cc_vid_1',vidHint:VID_SEASON[1]},
+    ]},
+    {w:1,wind:false,items:[
+      {id:'c_eq_2a',must:true,name:'裝備採購規格書完成',kpi:'彙整所有品項的最終規格書（型號、數量、顏色/尺寸分配），作為廠商下單依據，提交給Vivi 和 Darren確認後由公司負責簽約與付款',dl:'5/18'},
+      {id:'c3a',must:true,name:'雙板各級詳細教學步驟（LV10–LV13）',kpi:'完成 LV10–LV13 每級的詳細教學步驟，並補充常見錯誤與修正方式',dl:'5/18'},
+      {id:'c3b',must:true,name:'教學耳機採購提案',kpi:'完成至少 2 款耳機比較方案，含品牌、規格、單價、建議採購數量，提交給Vivi 和 Darren',dl:'5/18'},
+      {id:'c3c',must:true,name:'裝備保養流程 SOP',kpi:'完成天/週/月三層保養 SOP，涵蓋滑雪板、雪靴、安全帽、模擬器，格式為可逐項勾選表格',dl:'5/18'},
+      {id:'c2vid',must:true,name:'本週短影音 ×1（完成後交 Vivi 發布）',kpi:'',dl:'5/18',vid:true,vidKey:'cc_vid_2',vidHint:VID_SEASON[2]},
+    ]},
+    {w:1,wind:false,items:[
+      {id:'c_eq_3a',must:true,name:'廠商跟催與交期確認',kpi:'跟催各廠商出貨進度，確認交期是否能在 6/25 前到位，若有延遲立即回報Vivi 和 Darren',dl:'5/25'},
+      {id:'c4a',must:true,name:'Reels 拍攝主題清單',kpi:'建立 10 則以上 Reels 拍攝主題清單，每則含主題名稱、拍攝方式、建議時長、素材來源',dl:'5/25'},
+      {id:'c4b',must:true,name:'試營運宣傳影片腳本',kpi:'完成 60–90 秒宣傳影片腳本，含場景描述、旁白台詞、畫面切換節奏',dl:'5/25'},
+      {id:'c4vid',must:true,name:'本週短影音 ×1（完成後交 Vivi 發布）',kpi:'',dl:'5/25',vid:true,vidKey:'cc_vid_4',vidHint:VID_SEASON[4]},
+    ]},
+    {w:1,wind:false,items:[
+      {id:'c_eq_4a',must:false,name:'裝備到貨驗收清單規劃',kpi:'設計裝備到貨驗收清單（品項、數量、外觀、功能），供裝備到貨時逐項確認',dl:'6/1'},
+      {id:'c5a',must:true,name:'試營運宣傳影片剪輯初版',kpi:'完成宣傳影片初版，提交給Vivi 和 Darren審閱，6/1 前交付',dl:'6/1'},
+      {id:'c5vid',must:true,name:'本週短影音 ×1（完成後交 Vivi 發布）',kpi:'',dl:'6/1',vid:true,vidKey:'cc_vid_5',vidHint:VID_SEASON[5]},
+      {id:'c_june_5_a',must:true,name:'熟悉預約系統與課程商品設定',kpi:'配合Vivi 和 Darren完成預約系統操作、課程商品頁面設定，確認資料無誤',dl:'6/1'},
+      {id:'c_june_5_b',must:true,name:'熟悉課程方案和會員制度',kpi:'完整閱讀並理解各課程方案、會員等級制度、優惠規則，能向學員正確說明',dl:'6/1'},
+    ]},
+    {w:1,wind:false,items:[
+      {id:'c6a',must:true,name:'宣傳影片修改定版',kpi:'依Vivi 和 Darren審閱意見修改，完成最終版宣傳影片，6/8 前定版交付',dl:'6/8'},
+      {id:'c6b',must:true,name:'教室進場拍攝主題規劃',kpi:'規劃 6/9 起進入教室拍攝的主題清單，含教室空間、設備開箱、課程感受等，每個主題含期程安排',dl:'6/8',shoot:true,shootKey:'cc_shoot_6',shootType:'indoor'},
+    ]},
+    {w:1,wind:true,items:[
+      {id:'c7a',must:true,name:'雙板課程手冊最終修訂',kpi:'回顧雙板全套教學內容與評估標準，完成最後修訂，6/15 前定版',dl:'6/15'},
+      {id:'c7b',must:true,name:'教室進場拍攝執行＋試營運拍攝規劃',kpi:'開始執行教室進場拍攝，同步規劃試營運期間拍攝主題',dl:'6/15',shoot:true,shootKey:'cc_shoot_7',shootType:'trial'},
+      {id:'c_june_7_a',must:true,name:'每日對話練習（使用 SKI-O 練習系統）',kpi:'每日使用 SKI-O 對話練習系統完成指定時長練習，熟悉課程查詢、報名流程、費用說明、現場應對',dl:'6/15',daily:true,dailyKey:'cc_daily_7'},
+      {id:'c_june_7_b',must:true,name:'現場應對模擬練習',kpi:'完成現場接待流程模擬（迎賓、帶位、課前說明、課後送客），確認每個環節熟悉',dl:'6/15'},
+    ]},
+    {w:1,wind:true,items:[
+      {id:'c8a',must:true,name:'開幕倒數拍攝執行',kpi:'執行開幕衝刺期拍攝，完成影片剪輯後交 Vivi 安排發布',dl:'6/22',shoot:true,shootKey:'cc_shoot_8',shootType:'countdown'},
+      {id:'c8b',must:false,name:'熟悉系統與設備操作',kpi:'配合Vivi 和 Darren完成系統操作熟悉，確認裝備管理流程',dl:'6/22'},
+      {id:'c_june_8_a',must:true,name:'每日對話練習（使用 SKI-O 練習系統）',kpi:'每日使用 SKI-O 對話練習系統完成指定時長練習',dl:'6/22',daily:true,dailyKey:'cc_daily_8'},
+      {id:'c_june_8_b',must:true,name:'客服對話綜合複習',kpi:'複習所有對話情境，針對卡點向Vivi 和 Darren提問確認',dl:'6/22'},
+    ]},
+    {w:1,wind:true,items:[
+      {id:'c9a',must:true,name:'開幕最終影片收尾',kpi:'完成最後 1–2 支開幕宣告影片，交給 Vivi 在 6/30 前排定發布',dl:'6/30',shoot:true,shootKey:'cc_shoot_9',shootType:'opening'},
+      {id:'c_june_9_a',must:true,name:'每日對話練習（使用 SKI-O 練習系統）',kpi:'每日使用 SKI-O 對話練習系統完成指定時長練習',dl:'6/30',daily:true,dailyKey:'cc_daily_9'},
+      {id:'c_june_9_b',must:false,name:'試營運前最後自我檢核',kpi:'確認預約系統、課程方案、客服話術、現場流程是否全部熟悉，提出最後問題清單',dl:'6/30'},
+    ]},
+  ],
+};
+
+const MILESTONES={
+  benson:[
+    {key:'bms0',name:'合約簽署',dl:'4/30'},
+    {key:'bms1',name:'課程級別框架完成',dl:'4/27'},
+    {key:'bms2',name:'全級教學步驟完成',dl:'5/18'},
+    {key:'bms3',name:'課程手冊交付',dl:'5/25'},
+    {key:'bms4',name:'跳台器材提案',dl:'6/1'},
+  ],
+  cc:[
+    {key:'cms0',name:'合約簽署',dl:'4/30'},
+    {key:'cms_eq',name:'裝備採購規格書提交',dl:'5/11'},
+    {key:'cms1',name:'雙板課程級別框架',dl:'4/27'},
+    {key:'cms2',name:'全級教學步驟完成',dl:'5/18'},
+    {key:'cms3',name:'裝備 SOP 完成',dl:'5/18'},
+    {key:'cms4',name:'宣傳影片定版',dl:'6/8'},
+  ],
+};
+
+const FOUNDER_TASKS = {
+  darren: [
+    {cat:'人事相關',items:[      {id:'d_hr_3',must:false,name:'員工手冊初稿',kpi:'整理基本工作規範、請假制度、獎懲規則',dl:'6/15'},
+    ]},
+    {cat:'課程與定價',items:[
+      {id:'d_price_1',must:true,name:'室內滑雪課程定價',kpi:'確定單板、雙板各 LV 課程的定價策略，含體驗課、單堂、套票定價',dl:'5/15'},
+      {id:'d_price_2',must:true,name:'海外行程定價規劃',kpi:'確定日本雪場團體行程的費用結構、定價、獲利模型',dl:'5/25'},
+      {id:'d_member_1',must:true,name:'會員制度設計',kpi:'設計會員等級（一般/VIP/教練班）、積點規則、升級條件、專屬優惠',dl:'5/20'},
+    ]},
+    {cat:'預約與系統',items:[
+      {id:'d_sys_1',must:true,name:'課程預約系統架設',kpi:'完成預約系統平台選定、帳號建立、基本設定，確保可正常接受報名',dl:'5/31'},
+      {id:'d_sys_2',must:true,name:'課程商品上架',kpi:'將所有課程品項、定價、時數、說明上架至預約系統',dl:'6/10'},
+      {id:'d_sys_3',must:true,name:'預約系統完整測試',kpi:'完整走過報名、付款、確認信、取消流程，確認無誤',dl:'6/20'},
+    ]},
+    {cat:'機器與設備',items:[
+      {id:'d_machine_1',must:true,name:'滑雪模擬器廠商接洽',kpi:'確認模擬器規格、數量、安裝時程、保固條款，完成合約簽署',dl:'5/10'},
+      {id:'d_machine_2',must:true,name:'機器到場安裝監督',kpi:'監督模擬器運送、安裝、調試，確認功能正常',dl:'6/20'},
+      {id:'d_machine_3',must:false,name:'機器保養與維修合約',kpi:'確認售後保養合約、緊急維修聯絡方式',dl:'6/25'},
+    ]},
+    {cat:'內容與行銷',items:[
+      {id:'d_content_1',must:true,name:'短影音方向建議',kpi:'每週提供 CC 1–2 個短影音主題建議或內容方向，確保影片符合品牌調性',dl:'6/30'},
+      {id:'d_content_2',must:false,name:'開幕活動規劃',kpi:'規劃 7/1 開幕當日活動流程、嘉賓邀請、媒體曝光安排',dl:'6/15'},
+    ]},
+    {cat:'行政財務',items:[      {id:'d_admin_2',must:true,name:'建築師/裝潢窗口',kpi:'協調建築師與裝潢進度，確認施工時程、驗收標準',dl:'6/10'},
+      {id:'d_admin_3',must:false,name:'保險規劃',kpi:'確認教室責任險、器材保險等相關保單',dl:'6/15'},
+    ]},
+  ],
+  vivi: [
+    {cat:'網站與系統',items:[
+      {id:'v_web_1',must:true,name:'網頁 UI/UX 設計',kpi:'完成官網或 Wix 頁面設計，包含首頁、課程介紹、關於我們、聯絡方式',dl:'5/31'},
+      {id:'v_web_2',must:true,name:'網頁內容上線',kpi:'完成所有頁面文案、圖片、課程說明，確保正式開幕前上線',dl:'6/20'},
+    ]},
+    {cat:'社群與行銷',items:[
+      {id:'v_social_1',must:true,name:'IG 內容排程與發布',kpi:'接手慕慕的社群工作，每週發布 1–2 篇貼文（淡季 1 篇，6 月起 2 篇），依週日 21:00 為主要發布時間',dl:'6/30'},
+      {id:'v_social_2',must:true,name:'CC 短影音發布',kpi:'收到 CC 完成的短影音後，負責安排發布時間、填寫說明文字與標籤',dl:'6/30'},
+      {id:'v_social_3',must:true,name:'開幕行銷活動執行',kpi:'執行開幕前暖身活動（抽獎、早鳥優惠公告），追蹤互動數據',dl:'6/25'},
+    ]},
+    {cat:'裝潢與空間',items:[
+      {id:'v_space_1',must:true,name:'室內裝潢監督',kpi:'追蹤裝潢施工進度，確認風格、用料符合品牌規劃，協調施工問題',dl:'6/10'},
+      {id:'v_space_2',must:true,name:'教室空間最終驗收',kpi:'裝潢完工後進行全面驗收，確認教室空間符合開幕需求',dl:'6/25'},
+    ]},
+    {cat:'產品設計',items:[
+      {id:'v_product_1',must:true,name:'品牌制服設計',kpi:'完成教練制服設計稿（含版型、顏色、LOGO 位置），確認後送廠製作',dl:'5/31'},
+      {id:'v_product_2',must:true,name:'品牌襪子設計定案',kpi:'審閱慕慕設計稿（或自行設計），定案後送廠製作，確保開幕前到貨',dl:'6/10'},
+      {id:'v_product_3',must:false,name:'其他品牌周邊規劃',kpi:'評估其他品牌周邊商品（帽子、提袋等）的可行性與時程',dl:'6/20'},
+    ]},
+    {cat:'客服與美編',items:[
+      {id:'v_cs_1',must:true,name:'客服對話 app 製作',kpi:'與 Claude 協作完成 SKI-O 客服對話練習系統，供教練每日練習使用',dl:'5/31'},
+      {id:'v_cs_2',must:true,name:'客服 SOP 文件',kpi:'整理常見問題標準回覆、退課政策、緊急狀況應對話術，完成客服 SOP',dl:'6/10'},
+      {id:'v_design_1',must:true,name:'課程 DM 設計定案',kpi:'審閱並定案課程 DM（A4 版＋手機版），確保資訊正確、視覺符合品牌',dl:'5/15'},
+      {id:'v_design_2',must:true,name:'海外行程 DM 設計定案',kpi:'審閱並定案日本滑雪行程 DM，確保費用、行程資訊正確',dl:'5/31'},
+      {id:'v_design_3',must:true,name:'開幕視覺素材製作',kpi:'完成開幕海報、IG 封面模板 ×3、限時動態模板 ×2',dl:'6/15'},
+      {id:'v_design_4',must:false,name:'品牌視覺規範整理',kpi:'整理 SKI-O 雪圈品牌色盤、字型、LOGO 使用規範，作為往後設計依據',dl:'6/20'},
+    ]},
+    {cat:'LINE 圖文選單製作',items:[
+      {id:'v_line_1',must:true,name:'4/26 確定圖文選單的方向',kpi:'',dl:'4/26'},
+      {id:'v_line_2',must:true,name:'5/3 前完成圖文選單和多頁選項的頁面流程',kpi:'',dl:'5/3'},
+      {id:'v_line_3',must:true,name:'5/3 前完成設定加好友歡迎訊息',kpi:'',dl:'5/3'},
+    ]},
+  ],
+};
+
+const FOUNDER_MS = {
+  darren: [
+    {key:'d_ms0',name:'教練合約完成',dl:'4/30'},
+    {key:'d_ms1',name:'課程定價確定',dl:'5/15'},
+    {key:'d_ms2',name:'預約系統上線',dl:'5/31'},
+    {key:'d_ms3',name:'機器安裝完成',dl:'6/20'},
+    {key:'d_ms4',name:'系統完整測試',dl:'6/20'},
+  ],
+  vivi: [
+    {key:'v_ms0',name:'網頁上線',dl:'6/20'},
+    {key:'v_ms1',name:'客服 app 完成',dl:'5/31'},
+    {key:'v_ms2',name:'制服設計定案',dl:'5/31'},
+    {key:'v_ms3',name:'開幕視覺素材完成',dl:'6/15'},
+    {key:'v_ms4',name:'裝潢最終驗收',dl:'6/25'},
+  ],
+};
+
+const COACHES=['benson','cc','darren','vivi'];
+const NAMES={benson:'班森',cc:'CC',darren:'Darren',vivi:'Vivi'};
+let curWeek=0;
+let curCoach='benson';
+
+// Storage keys
+const sk=(c,w)=>`skio_f_${c}_w${w}`;
+const ftk=c=>`skio_f_ftask_${c}`;
+const fmk=c=>`skio_f_fms_${c}`;
+const fsk=(c,tid)=>`skio_fsub_${c}_${tid}`;
+const fdatk=(c,tid)=>`skio_fdate_${c}_${tid}`;
+const loadFDate=(c,tid)=>localStorage.getItem(fdatk(c,tid))||'';
+const fmsk_custom=c=>`skio_fms_custom_${c}`;
+const loadFMsCustom=c=>{const r=localStorage.getItem(fmsk_custom(c));return r?JSON.parse(r):[];};
+const saveFMsCustom=(c,d)=>localStorage.setItem(fmsk_custom(c),JSON.stringify(d));
+const saveFDate=(c,tid,v)=>localStorage.setItem(fdatk(c,tid),v);
+const loadFSub=(c,tid)=>{const r=localStorage.getItem(fsk(c,tid));return r?JSON.parse(r):[];};
+const saveFSub=(c,tid,d)=>localStorage.setItem(fsk(c,tid),JSON.stringify(d));
+const loadFT=c=>{const r=localStorage.getItem(ftk(c));return r?JSON.parse(r):{};};
+const saveFT=(c,d)=>localStorage.setItem(ftk(c),JSON.stringify(d));
+const loadFMs=c=>{const r=localStorage.getItem(fmk(c));return r?JSON.parse(r):{};};
+const saveFMs=(c,d)=>localStorage.setItem(fmk(c),JSON.stringify(d));
+const mk=c=>`skio_f_ms_${c}`;
+const tk=c=>`skio_f_task_${c}`;
+const tdk=(c,tid)=>`skio_tdate_${c}_${tid}`;
+const wtk=(c,w)=>`skio_wtask_${c}_w${w}`;
+const loadWTask=(c,w)=>{const r=localStorage.getItem(wtk(c,w));return r?JSON.parse(r):[];};
+const saveWTask=(c,w,d)=>localStorage.setItem(wtk(c,w),JSON.stringify(d));
+const loadTDate=(c,tid)=>localStorage.getItem(tdk(c,tid))||'';
+const saveTDate=(c,tid,v)=>{localStorage.setItem(tdk(c,tid),v);fbSaveTask(c,tid,loadTD(c)[tid]||false,v);};
+const igk=k=>`skio_f_ig_${k}`;
+const vidk=k=>`skio_f_vid_${k}`;
+const shk=k=>`skio_f_sh_${k}`;
+const lvk=k=>`skio_f_lv_${k}`;
+const dayk=k=>`skio_f_day_${k}`;
+
+const loadR=(c,w)=>{const r=localStorage.getItem(sk(c,w));return r?JSON.parse(r):{done:[],plan:[],blocker:'',score:0};};
+const saveR=(c,w,d)=>localStorage.setItem(sk(c,w),JSON.stringify(d));
+const loadMs=c=>{const r=localStorage.getItem(mk(c));return r?JSON.parse(r):{};};
+const saveMs=(c,d)=>localStorage.setItem(mk(c),JSON.stringify(d));
+const loadTD=c=>{const r=localStorage.getItem(tk(c));return r?JSON.parse(r):{};};
+const saveTD=(c,d)=>localStorage.setItem(tk(c),JSON.stringify(d));
+const loadIG=k=>{const r=localStorage.getItem(igk(k));return r?JSON.parse(r):{make:'',makeType:'貼文',publishNote:'',publishDate:'',make2:'',makeType2:'貼文',publishNote2:'',publishDate2:''};};
+const saveIG=(k,d)=>localStorage.setItem(igk(k),JSON.stringify(d));
+const loadVid=k=>{const r=localStorage.getItem(vidk(k));return r?JSON.parse(r):{theme:'',note:'',handDate:''};};
+const saveVid=(k,d)=>localStorage.setItem(vidk(k),JSON.stringify(d));
+const loadShoot=k=>{const r=localStorage.getItem(shk(k));return r?JSON.parse(r):[];};
+const saveShoot=(k,d)=>localStorage.setItem(shk(k),JSON.stringify(d));
+const loadLV=k=>{
+  const r=localStorage.getItem(lvk(k));
+  if(r) return JSON.parse(r);
+  return JSON.parse(JSON.stringify(k==='benson_lv'?LV_BENSON_DEFAULT:LV_CC_DEFAULT));
+};
+const saveLV=(k,d)=>localStorage.setItem(lvk(k),JSON.stringify(d));
+const loadDay=k=>{const r=localStorage.getItem(dayk(k));return r?JSON.parse(r):[false,false,false,false,false,false,false];};
+const saveDay=(k,d)=>localStorage.setItem(dayk(k),JSON.stringify(d));
+
+// Auto-save every 30 seconds
+let autoSaveTimer=setInterval(()=>{
+  autoSaveCoach(curCoach);
+},30000);
+
+function autoSaveCoach(c){
+  if(c==='darren'||c==='vivi'){saveFounderNote(c);return;}
+  const d=loadR(c,curWeek);
+  const blockerEl=document.getElementById(`${c}-blocker`);
+  if(blockerEl) d.blocker=blockerEl.value;
+  saveR(c,curWeek,d);
+  // Debounce Firebase sync to avoid too frequent updates
+  clearTimeout(window._autoSaveTimer);
+  window._autoSaveTimer=setTimeout(()=>fbSaveReport(c,curWeek), 2000);
+  const dot=document.querySelector('.autosave-dot');
+  if(dot){dot.style.background='#4CAF50';setTimeout(()=>{dot.style.background='#4CAF50';},1000);}
+}
+
+function saveCurrentCoach(){if(curCoach==='darren'||curCoach==='vivi'){saveFounderNote(curCoach);return;}saveCoach(curCoach);}
+
+function init(){
+  // Pre-set Vivi's LINE task as done (already completed 4/26)
+  if(!localStorage.getItem('skio_ftask_vivi')) {
+    const fd = {};
+    fd['v_line_1'] = true;
+    saveFT('vivi', fd);
+    localStorage.setItem(tdk('vivi','v_line_1'), '2026-04-26');
+  }
+  buildWeekUI();
+  COACHES.forEach(c=>buildPanel(c));
+  COACHES.forEach(c=>{renderMsForm(c);renderMaster(c);renderCoach(c);renderHist(c);});
+  updateDash();
+  // Firebase 載入 + 即時監聽
+  fbLoadAll().then(()=>{
+    COACHES.forEach(c=>{renderMsForm(c);renderMaster(c);renderCoach(c);renderHist(c);});
+    ['darren','vivi'].forEach(c=>buildFounderPanelFor(c));
+    updateDash();
+    // Auto-resize all textareas after content loads
+    setTimeout(()=>{
+      document.querySelectorAll('textarea').forEach(ta=>autoResize(ta));
+    }, 500);
+  });
+  fbStartListening();
+}
+
+const COACH_PALE={benson:'#EEF6FD',cc:'#EDFAF3',darren:'#F9FAFB',vivi:'#FEF6F0'};
+const COACH_BORDER={benson:'#B8D9EF',cc:'#A8DCC0',darren:'#D1D5DB',vivi:'#F5C49A'};
+function buildPanel(c){
+  if(c==='darren'||c==='vivi'){buildFounderPanelFor(c);return;}
+  const panel=document.getElementById(`panel-${c}`);
+  panel.innerHTML=`
+    <div class="panel-body">
+      <div class="two-col">
+        <div>
+          <div class="fsec"><div class="sec-lbl">✅ 本週完成項目</div>
+            <div class="task-add"><input type="text" id="${c}-done-inp" placeholder="新增，Enter 確認" onkeydown="if(event.key==='Enter')addTask('${c}','done')"><button class="btn-plus" onclick="addTask('${c}','done')">+</button></div>
+            <div class="task-items" id="${c}-done-list"></div></div>
+          <div class="fsec"><div class="sec-lbl">📅 下週計畫</div>
+            <div class="task-add"><input type="text" id="${c}-plan-inp" placeholder="新增，Enter 確認" onkeydown="if(event.key==='Enter')addTask('${c}','plan')"><button class="btn-plus" onclick="addTask('${c}','plan')">+</button></div>
+            <div class="task-items" id="${c}-plan-list"></div></div>
+        </div>
+        <div>
+          <div class="fsec"><div class="sec-lbl">🚧 卡點／需要協助</div>
+            <div style="border-left:3px solid #D4820A;padding-left:6px;"><textarea id="${c}-blocker" placeholder="說明卡在哪裡、需要什麼支援…" oninput="autoSaveCoach('${c}')"></textarea></div></div>
+          <div class="fsec"><div class="sec-lbl">🎯 里程碑狀態</div><div class="ms-form" id="${c}-ms-form"></div></div>
+          <div class="fsec"><div class="sec-lbl">⭐ 本週自評</div>
+            <div class="score-btns" id="${c}-score">
+              ${[1,2,3,4,5].map(i=>`<button class="score-btn" onclick="setScore('${c}',${i})">${i}</button>`).join('')}
+            </div></div>
+        </div>
+      </div>
+    </div>
+    <div class="tasks-master">
+      <div class="tmaster-hdr"><span>${NAMES[c]}｜每週任務清單</span><span style="font-size:11px;font-weight:400;color:#9CA3AF;">深色邊框＝必做</span></div>
+      <div id="${c}-tasks-master"></div>
+    </div>
+    <hr class="sep" style="margin:0 1rem;">
+    <div class="save-bar">
+      <div class="save-info"><span class="autosave-dot"></span>${NAMES[c]}・<strong id="${c}-wk-lbl">第 1 週</strong> <span style="color:#9CA3AF;font-size:11px;">（每 30 秒自動儲存）</span></div>
+      <div class="save-btns"><button class="btn-clr" onclick="clearCoach('${c}')">清除</button><button class="btn-save" style="background:${COACH_COLORS[c]||'var(--deep)'}" onclick="saveCoach('${c}')">儲存週報</button></div>
+    </div>
+    <div class="hist-section" style="margin-top:.5rem;"><div class="hist-title">歷史週報</div><div class="hist-list" id="${c}-hist"></div></div>
+  `;
+}
+
+function buildWeekUI(){
+  document.getElementById('cur-wk-lbl').textContent=WEEKS[curWeek].lbl;
+  COACHES.forEach(c=>{const el=document.getElementById(`${c}-wk-lbl`);if(el)el.textContent=WEEKS[curWeek].lbl;});
+  document.getElementById('wk-list').innerHTML=WEEKS.map((w,i)=>
+    `<div class="wk-opt ${i===curWeek?'cur':''}" onclick="selectWeek(${i})">${w.lbl} <span style="color:#9CA3AF;font-size:12px;">${w.range}</span></div>`
+  ).join('');
+}
+function selectWeek(i){curWeek=i;buildWeekUI();COACHES.forEach(c=>{renderCoach(c);renderHist(c);});updateDash();closeWeekModal();}
+function openWeekModal(){document.getElementById('wk-modal').classList.add('open');}
+function closeWeekModal(){document.getElementById('wk-modal').classList.remove('open');}
+
+function renderCoach(c){
+  const d=loadR(c,curWeek);
+  renderTL(c,'done',d.done);renderTL(c,'plan',d.plan);
+  const el=document.getElementById(`${c}-blocker`);
+  if(el) el.value=d.blocker||'';
+  renderScore(c,d.score);
+}
+function renderTL(c,type,tasks){
+  const el=document.getElementById(`${c}-${type}-list`);
+  if(!el) return;
+  el.innerHTML=(tasks||[]).map((t,i)=>
+    `<div class="task-row">
+      <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${c}','${type}',${i})">
+      <span class="task-txt ${t.done?'done':''}">${esc(t.text)}</span>
+      <button class="task-del" onclick="removeTask('${c}','${type}',${i})">×</button>
+    </div>`
+  ).join('');
+}
+function addTask(c,type){
+  const inp=document.getElementById(`${c}-${type}-inp`);if(!inp)return;
+  const txt=inp.value.trim();if(!txt)return;
+  const d=loadR(c,curWeek);if(!d[type])d[type]=[];d[type].push({text:txt,done:false});
+  saveR(c,curWeek,d);renderTL(c,type,d[type]);inp.value='';
+}
+function toggleTask(c,type,i){const d=loadR(c,curWeek);d[type][i].done=!d[type][i].done;saveR(c,curWeek,d);renderTL(c,type,d[type]);updateDash();}
+function removeTask(c,type,i){const d=loadR(c,curWeek);d[type].splice(i,1);saveR(c,curWeek,d);renderTL(c,type,d[type]);}
+function setScore(c,v){const d=loadR(c,curWeek);d.score=v;saveR(c,curWeek,d);renderScore(c,v);}
+function renderScore(c,v){
+  const col=COACH_COLORS[c]||'var(--deep)';
+  document.querySelectorAll(`#${c}-score .score-btn`).forEach((b,i)=>{
+    b.classList.toggle('sel',i+1===v);
+    if(i+1===v){b.style.background=col;b.style.borderColor=col;}
+    else{b.style.background='';b.style.borderColor='';}
+  });
+}
+function saveCoach(c){
+  const d=loadR(c,curWeek);
+  const el=document.getElementById(`${c}-blocker`);
+  if(el) d.blocker=el.value;
+  saveR(c,curWeek,d);
+  renderHist(c);updateDash();
+  showSyncStatus('🔄 同步中...');
+  // Re-load after save to ensure latest data is synced
+  const saved=loadR(c,curWeek);
+  gsPost({action:'upsert', table:'weekly_reports', keyField:'coach_week', keyValue:c+'_'+curWeek,
+    record:{coach:c, week:curWeek,
+      done_tasks:JSON.stringify(saved.done||[]),
+      plan_tasks:JSON.stringify(saved.plan||[]),
+      blocker:saved.blocker||'',
+      score:saved.score||0,
+      updated_at:new Date().toISOString()
+    }
+  }).then(()=>showSyncStatus('✓ 已同步至 Google Sheets',true));
+  showToast(`${NAMES[c]} 週報已儲存 ✓`);
+}
+function clearCoach(c){
+  if(!confirm(`確定清除 ${NAMES[c]} 本週所有內容？`))return;
+  saveR(c,curWeek,{done:[],plan:[],blocker:'',score:0});renderCoach(c);showToast('已清除');
+}
+function renderMsForm(c){
+  const saved=loadMs(c);const el=document.getElementById(`${c}-ms-form`);if(!el)return;
+  const col=COACH_COLORS[c]||'var(--deep)';
+  el.innerHTML=MILESTONES[c].map(m=>{
+    const st=saved[m.key]||'pending';
+    return `<div class="ms-form-row">
+      <span class="ms-form-name">${m.name}</span><span class="ms-form-dl">${m.dl}</span>
+      <select class="ms-sel" onchange="updateMs('${c}','${m.key}',this.value)">
+        <option value="pending" ${st==='pending'?'selected':''}>進行中</option>
+        <option value="done" ${st==='done'?'selected':''}>已完成</option>
+        <option value="at-risk" ${st==='at-risk'?'selected':''}>有風險</option>
+        <option value="overdue" ${st==='overdue'?'selected':''}>延遲</option>
+      </select></div>`;
+  }).join('');
+}
+function updateMs(c,key,val){const s=loadMs(c);s[key]=val;saveMs(c,s);updateDash();fbSaveMs(c,key,val);}
+
+// ── Daily practice checker ──
+function renderDaily(dailyKey){
+  const days=loadDay(dailyKey);
+  const allDone=days.every(Boolean);
+  return `<div class="daily-check">
+    <div class="daily-check-lbl">本週每日練習完成情況 ${allDone?'<span class="tmi-tag tag-done" style="vertical-align:middle;">全週完成 ✓</span>':''}</div>
+    <div class="daily-grid">
+      ${DAYS.map((d,i)=>`
+        <div class="day-btn ${days[i]?'checked':''}" onclick="toggleDay('${dailyKey}',${i})">
+          <div class="day-name">週${d}</div>
+          <div class="day-chk">${days[i]?'✓':''}</div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+function toggleDay(key,idx){
+  const days=loadDay(key);days[idx]=!days[idx];saveDay(key,days);renderMaster(keyToCoach(key));}
+function keyToCoach(k){if(k.startsWith('benson'))return 'benson';return 'cc';}
+
+// ── IG tracker ──
+function renderIG(igKey,hint,multi){
+  const d=loadIG(igKey);
+  if(multi){
+    return `<div class="field-block">
+      <div class="field-block-lbl">📸 本週內容製作與發布（2 篇）<span style="display:block;font-size:10px;color:#9CA3AF;font-weight:400;margin-top:2px;">應景方向：${hint}</span></div>
+      <div style="margin-bottom:8px;">
+        <div class="field-post-num" style="color:#D4820A;">第 1 篇 ── 週三 21:00 發布</div>
+        <div class="field-row r2" style="margin-top:4px;">
+          <div class="field-item"><label>主題</label><input class="f-inp" placeholder="主題…" value="${esc(d.make)}" oninput="updIG('${igKey}','make',this.value)"></div>
+          <div class="field-item"><label>內容形式</label><select class="f-inp" onchange="updIG('${igKey}','makeType',this.value)">
+            <option ${(d.makeType||'貼文')==='貼文'?'selected':''}>貼文</option>
+            <option ${d.makeType==='Reels'?'selected':''}>Reels</option>
+            <option ${d.makeType==='短影音'?'selected':''}>短影音</option>
+          </select></div>
+        </div>
+        <div class="field-row r2" style="margin-top:4px;">
+          <div class="field-item"><label>內容概要</label><input class="f-inp" placeholder="簡述內容方向…" value="${esc(d.publishNote)}" oninput="updIG('${igKey}','publishNote',this.value)"></div>
+          <div class="field-item"><label>週三發布日期</label><input class="f-inp" type="date" value="${esc(d.publishDate)}" oninput="updIG('${igKey}','publishDate',this.value)"></div>
+        </div>
+      </div>
+      <div class="field-sep"></div>
+      <div>
+        <div class="field-post-num" style="color:var(--success);">第 2 篇 ── 週日 21:00 發布（建議主推）</div>
+        <div class="field-row r2" style="margin-top:4px;">
+          <div class="field-item"><label>主題</label><input class="f-inp" placeholder="主題…" value="${esc(d.make2||'')}" oninput="updIG('${igKey}','make2',this.value)"></div>
+          <div class="field-item"><label>內容形式</label><select class="f-inp" onchange="updIG('${igKey}','makeType2',this.value)">
+            <option ${(d.makeType2||'貼文')==='貼文'?'selected':''}>貼文</option>
+            <option ${(d.makeType2||'')==='Reels'?'selected':''}>Reels</option>
+            <option ${(d.makeType2||'')==='短影音'?'selected':''}>短影音</option>
+          </select></div>
+        </div>
+        <div class="field-row r2" style="margin-top:4px;">
+          <div class="field-item"><label>內容概要</label><input class="f-inp" placeholder="簡述內容方向…" value="${esc(d.publishNote2||'')}" oninput="updIG('${igKey}','publishNote2',this.value)"></div>
+          <div class="field-item"><label>週日發布日期</label><input class="f-inp" type="date" value="${esc(d.publishDate2||'')}" oninput="updIG('${igKey}','publishDate2',this.value)"></div>
+        </div>
+        <div class="ig-rec">⭐ 週三＋週日各 21:00 發布</div>
+      </div>
+    </div>`;
+  }
+  return `<div class="field-block">
+    <div class="field-block-lbl">📸 本週內容製作與發布<span style="display:block;font-size:10px;color:#9CA3AF;font-weight:400;margin-top:2px;">應景方向：${hint}</span></div>
+    <div class="field-row r2">
+      <div class="field-item"><label>製作主題</label><input class="f-inp" placeholder="本週製作的主題…" value="${esc(d.make)}" oninput="updIG('${igKey}','make',this.value)"></div>
+      <div class="field-item"><label>內容形式</label><select class="f-inp" onchange="updIG('${igKey}','makeType',this.value)">
+        <option ${(d.makeType||'貼文')==='貼文'?'selected':''}>貼文</option>
+        <option ${d.makeType==='Reels'?'selected':''}>Reels</option>
+        <option ${d.makeType==='短影音'?'selected':''}>短影音</option>
+      </select></div>
+    </div>
+    <div class="field-sep"></div>
+    <div class="field-row r2">
+      <div class="field-item"><label>發布內容概要</label><input class="f-inp" placeholder="選擇發布的內容…" value="${esc(d.publishNote)}" oninput="updIG('${igKey}','publishNote',this.value)"></div>
+      <div class="field-item"><label>週日發布日期</label><input class="f-inp" type="date" value="${esc(d.publishDate)}" oninput="updIG('${igKey}','publishDate',this.value)"></div>
+    </div>
+    <div class="ig-rec">⭐ 建議週日 21:00 發布</div>
+  </div>`;
+}
+function updIG(key,field,val){const d=loadIG(key);d[field]=val;saveIG(key,d);}
+
+// ── Video tracker ──
+function renderVid(vidKey,hint){
+  const d=loadVid(vidKey);
+  return `<div class="field-block">
+    <div class="field-block-lbl">🎬 本週短影音（完成後交 Vivi 發布）<span style="display:block;font-size:10px;color:#9CA3AF;font-weight:400;margin-top:2px;">應景方向：${hint}</span></div>
+    <div class="field-row r3">
+      <div class="field-item" style="grid-column:1/3"><label>影片主題</label><input class="f-inp" placeholder="自填主題…" value="${esc(d.theme)}" oninput="updVid('${vidKey}','theme',this.value)"></div>
+      <div class="field-item"><label>交 Vivi 日期</label><input class="f-inp" type="date" value="${esc(d.handDate)}" oninput="updVid('${vidKey}','handDate',this.value)"></div>
+    </div>
+    <div class="field-item" style="margin-top:5px;"><label>影片內容概要</label><input class="f-inp" placeholder="簡述影片內容方向…" value="${esc(d.note)}" oninput="updVid('${vidKey}','note',this.value)"></div>
+  </div>`;
+}
+function updVid(key,field,val){const d=loadVid(key);d[field]=val;saveVid(key,d);}
+
+// ── Shoot plan ──
+function renderShoot(shootKey,shootType){
+  const items=loadShoot(shootKey);
+  const lbl=SHOOT_LABELS[shootType]||'🎥 拍攝規劃';
+  return `<div class="shoot-block">
+    <div class="shoot-block-lbl">${lbl}</div>
+    ${items.map((s,i)=>`<div class="shoot-item">
+      <div class="shoot-item-top"><span class="shoot-num">主題 ${i+1}</span><button class="shoot-del" onclick="delShoot('${shootKey}',${i})">×</button></div>
+      <div class="field-row r2" style="margin-bottom:5px;">
+        <div><div class="s-lbl">拍攝主題</div><input class="s-inp" value="${esc(s.theme)}" placeholder="主題…" oninput="updShoot('${shootKey}',${i},'theme',this.value)"></div>
+        <div><div class="s-lbl">預計拍攝日</div><input class="s-inp" type="date" value="${esc(s.date)}" oninput="updShoot('${shootKey}',${i},'date',this.value)"></div>
+      </div>
+      <div class="field-row r2">
+        <div><div class="s-lbl">交 Vivi 發布日</div><input class="s-inp" type="date" value="${esc(s.pub)}" oninput="updShoot('${shootKey}',${i},'pub',this.value)"></div>
+        <div><div class="s-lbl">內容方向</div><input class="s-inp" value="${esc(s.note)}" placeholder="影片氛圍…" oninput="updShoot('${shootKey}',${i},'note',this.value)"></div>
+      </div>
+    </div>`).join('')}
+    <button class="btn-add-shoot" onclick="addShoot('${shootKey}')">＋ 新增拍攝主題</button>
+  </div>`;
+}
+function updShoot(key,idx,field,val){const d=loadShoot(key);d[idx][field]=val;saveShoot(key,d);}
+function addShoot(key){const d=loadShoot(key);d.push({theme:'',date:'',pub:'',note:''});saveShoot(key,d);renderMaster('cc');}
+function delShoot(key,idx){const d=loadShoot(key);d.splice(idx,1);saveShoot(key,d);renderMaster('cc');}
+
+// ── LV Framework with drag & drop ──
+let dragSrcIdx=null,dragLvKey=null;
+
+function renderLV(lvKey,basicOnly,fullOnly){
+  const rows=loadLV(lvKey);
+  const coachLabel=lvKey==='benson_lv'?'單板':'雙板';
+  let title,hint;
+  if(basicOnly){
+    title=`🏂 ${coachLabel}課程級別框架（本週：填入分類、滑行程度、課程內容、程度目標）`;
+    hint='本週只需完成框架欄位即可，詳細教學步驟從第 2 週起填入・Vivi 已預填大方向，請補充完整';
+  } else if(fullOnly){
+    title=`🏂 ${coachLabel}課程級別框架 — 詳細教學步驟`;
+    hint='本週重點：在每個級別下方逐條填入詳細教學步驟，並補充備註說明';
+  } else {
+    title=`🏂 ${coachLabel}課程級別框架（可增減＋拖拉排序）`;
+    hint='各欄位可直接編輯・長按左側 ⠿ 可拖拉調整順序・Vivi 已預填框架，班森／CC 請補充課程內容與程度目標';
+  }
+  return `<div class="lv-framework">
+    <div class="lv-framework-hdr">
+      <span class="lv-framework-title">${title}</span>
+      <button class="lv-add-btn" onclick="addLVRow('${lvKey}')">＋ 新增級別</button>
+    </div>
+    <div id="lv-list-${lvKey}">
+      ${rows.map((r,i)=>renderLVItem(lvKey,r,i,basicOnly,fullOnly)).join('')}
+    </div>
+    <div class="lv-hint">${hint}</div>
+  </div>`;
+}
+
+function renderLVItem(lvKey,r,i,basicOnly,fullOnly){
+  const steps=(r.steps||[]);
+  const coach=lvKey==='benson_lv'?'benson':'cc';
+  return `<div class="lv-item" draggable="true" data-idx="${i}" data-lvkey="${lvKey}"
+    ondragstart="dragStart(event,'${lvKey}',${i})"
+    ondragover="dragOver(event)"
+    ondrop="dragDrop(event,'${lvKey}',${i})"
+    ondragend="dragEnd(event)">
+    <div class="lv-item-top">
+      <span class="lv-drag" title="拖拉排序">⠿</span>
+      <input class="lv-badge-inp" value="${esc(r.lv)}" oninput="updLV('${lvKey}',${i},'lv',this.value)">
+      <button class="lv-del-btn" onclick="delLVRow('${lvKey}',${i})">×</button>
+    </div>
+    <div class="lv-grid-4">
+      <div><div class="lv-field-lbl">分類</div><input class="lv-inp" value="${esc(r.cat||'')}" placeholder="初學/初階/中階/高階" oninput="updLV('${lvKey}',${i},'cat',this.value)"></div>
+      <div><div class="lv-field-lbl">滑行程度</div><input class="lv-inp" value="${esc(r.skill||'')}" placeholder="滑行技術名稱" oninput="updLV('${lvKey}',${i},'skill',this.value)"></div>
+    </div>
+    <div style="margin-top:5px;">
+      <div class="lv-field-lbl">課程內容</div>
+      <textarea class="lv-inp-full" placeholder="課程內容項目（可逗號分隔或換行）" oninput="updLV('${lvKey}',${i},'content',this.value);autoResize(this)" style="min-height:60px;">${esc(r.content||'')}</textarea>
+    </div>
+    <div style="margin-top:5px;">
+      <div class="lv-field-lbl">程度目標（達到後可晉升下一級）</div>
+      <textarea class="lv-inp-full" placeholder="學員需達到什麼標準，才能進入下一個程度" oninput="updLV('${lvKey}',${i},'goal',this.value);autoResize(this)" style="min-height:60px;">${esc(r.goal||'')}</textarea>
+    </div>
+    <div class="teach-block" style="margin-top:8px;${basicOnly?'display:none':''}">
+      <div class="teach-block-hdr">
+        <span class="teach-block-title">詳細教學步驟（逐步填入）</span>
+        <button class="lv-add-btn" onclick="addStep('${lvKey}',${i})">＋ 新增步驟</button>
+      </div>
+      <div id="steps-${lvKey}-${i}">
+        ${steps.map((s,si)=>renderStepRow(s,si,lvKey,i)).join('')}
+      </div>
+      <button class="btn-add-step" onclick="addStep('${lvKey}',${i})">＋ 新增教學步驟</button>
+      <div style="margin-top:6px;">
+        <div class="lv-field-lbl">備註說明</div>
+        <textarea class="teach-note" placeholder="補充備註、彈性教學說明…" oninput="updLV('${lvKey}',${i},'note',this.value)">${esc(r.note||'')}</textarea>
+      </div>
+    </div>
+    ${basicOnly?'<div style="margin-top:6px;padding:8px 10px;background:#FEF3E2;border-radius:6px;font-size:11px;color:#8B5E00;">📌 本週重點是填好框架欄位，詳細教學步驟從第 2 週起填入</div>':''}
+  </div>`;
+}
+
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+function renderStepRow(s,si,lvKey,lvIdx){
+  const sid='step_'+lvKey+'_'+lvIdx+'_'+si;
+  return '<div class="teach-step" draggable="true"'
+    +' ondragstart="stepDragStart(event,\''+lvKey+'\','+lvIdx+','+si+')"'
+    +' ondragover="event.preventDefault()"'
+    +' ondrop="stepDrop(event,\''+lvKey+'\','+lvIdx+','+si+')">'
+    +'<span style="cursor:grab;color:#C5D5D8;font-size:14px;padding:2px;flex-shrink:0;" onclick="event.stopPropagation()">⠿</span>'
+    +'<span style="font-size:11px;font-weight:600;color:#5A8090;min-width:22px;flex-shrink:0;">'+(si+1)+'.</span>'
+    +'<textarea id="'+sid+'"'
+    +' style="flex:1;border:1px solid #DCE9EC;border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--font);color:#284957;background:#F8FAFB;outline:none;resize:none;overflow:hidden;line-height:1.6;min-height:36px;width:100%;"'
+    +' placeholder="教學步驟詳細說明…"'
+    +' oninput="updStep(\''+lvKey+'\','+lvIdx+','+si+',this.value);autoResize(this)">'+esc(s.t||'')+'</textarea>'
+    +'<button style="background:none;border:none;cursor:pointer;color:#C5D5D8;font-size:15px;padding:0 3px;flex-shrink:0;line-height:1;" '
+    +'onclick="delStep(\''+lvKey+'\','+lvIdx+','+si+')">×</button>'
+    +'</div>';
+}
+
+
+function toggleStep(sid,hdr){
+  const d=document.getElementById(sid);
+  const arr=document.getElementById('arr_'+sid);
+  if(!d)return;
+  const open=d.style.display==='block';
+  d.style.display=open?'none':'block';
+  if(arr)arr.textContent=open?'▾':'▴';
+  if(hdr)hdr.style.borderBottomLeftRadius=open?'8px':'0';
+  if(hdr)hdr.style.borderBottomRightRadius=open?'8px':'0';
+  if(!open){
+    const ta=d.querySelector('textarea');
+    if(ta){autoResize(ta);ta.focus();}
+  }
+}
+function updateStepPreview(sid,val){
+  const row=document.getElementById(sid);
+  if(!row)return;
+  const hdr=row.previousElementSibling;
+  if(!hdr)return;
+  const span=hdr.querySelectorAll('span')[2];
+  if(span){span.textContent=val?val.slice(0,40)+(val.length>40?'…':''):'（點擊展開編輯）';}
+}
+
+// LV CRUD
+function updLV(key,idx,field,val){
+  const rows=loadLV(key);rows[idx][field]=val;saveLV(key,rows);
+  clearTimeout(window._lvSyncTimer);
+  window._lvSyncTimer=setTimeout(()=>fbSaveLV(key),2000);
+}
+function addLVRow(key){
+  const c=key==='benson_lv'?'benson':'cc';
+  const openWBs=getOpenWBs(c);
+  const rows=loadLV(key);
+  rows.push({lv:`LV${rows.length}`,cat:'',skill:'',content:'',goal:'',steps:[],note:''});
+  saveLV(key,rows);renderMaster(c);
+  openWBs.forEach(bid=>{const el=document.getElementById(bid);const arr=document.getElementById('arr_'+bid);if(el){el.classList.remove('collapsed');if(arr)arr.textContent='▴';}});
+}
+function delLVRow(key,idx){
+  if(!confirm('確定刪除此級別？'))return;
+  const c=key==='benson_lv'?'benson':'cc';
+  const openWBs=getOpenWBs(c);
+  const rows=loadLV(key);rows.splice(idx,1);saveLV(key,rows);
+  renderMaster(c);
+  openWBs.forEach(bid=>{const el=document.getElementById(bid);const arr=document.getElementById('arr_'+bid);if(el){el.classList.remove('collapsed');if(arr)arr.textContent='▴';}});
+}
+
+// Step CRUD
+function addStep(lvKey,lvIdx){
+  const c=lvKey==='benson_lv'?'benson':'cc';
+  const openWBs=getOpenWBs(c);
+  const rows=loadLV(lvKey);if(!rows[lvIdx].steps)rows[lvIdx].steps=[];
+  rows[lvIdx].steps.push({t:''});saveLV(lvKey,rows);
+  fbSaveLV(lvKey);
+  renderMaster(c);
+  openWBs.forEach(bid=>{const el=document.getElementById(bid);const arr=document.getElementById('arr_'+bid);if(el){el.classList.remove('collapsed');if(arr)arr.textContent='▴';}});
+}
+function delStep(lvKey,lvIdx,stepIdx){
+  const c=lvKey==='benson_lv'?'benson':'cc';
+  const openWBs=getOpenWBs(c);
+  const rows=loadLV(lvKey);rows[lvIdx].steps.splice(stepIdx,1);saveLV(lvKey,rows);
+  fbSaveLV(lvKey);
+  renderMaster(c);
+  openWBs.forEach(bid=>{const el=document.getElementById(bid);const arr=document.getElementById('arr_'+bid);if(el){el.classList.remove('collapsed');if(arr)arr.textContent='▴';}});
+}
+function updStep(lvKey,lvIdx,stepIdx,val){
+  const rows=loadLV(lvKey);if(!rows[lvIdx].steps)rows[lvIdx].steps=[];
+  rows[lvIdx].steps[stepIdx].t=val;saveLV(lvKey,rows);
+  clearTimeout(window._lvSyncTimer);
+  window._lvSyncTimer=setTimeout(()=>fbSaveLV(lvKey),2000);
+}
+
+// LV drag & drop
+let lvDragIdx=null,lvDragKey=null;
+function dragStart(e,key,idx){lvDragKey=key;lvDragIdx=idx;e.currentTarget.classList.add('dragging');}
+function dragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
+function dragDrop(e,key,toIdx){
+  e.preventDefault();
+  document.querySelectorAll('.lv-item').forEach(el=>el.classList.remove('drag-over'));
+  if(lvDragKey!==key||lvDragIdx===toIdx)return;
+  const c=key==='benson_lv'?'benson':'cc';
+  const openWBs=getOpenWBs(c);
+  const rows=loadLV(key);
+  const [moved]=rows.splice(lvDragIdx,1);
+  rows.splice(toIdx,0,moved);
+  saveLV(key,rows);renderMaster(c);
+  openWBs.forEach(bid=>{const el=document.getElementById(bid);const arr=document.getElementById('arr_'+bid);if(el){el.classList.remove('collapsed');if(arr)arr.textContent='▴';}});
+}
+function dragEnd(e){e.currentTarget.classList.remove('dragging');}
+
+// Step drag & drop
+let stepDragLvKey=null,stepDragLvIdx=null,stepDragStepIdx=null;
+function stepDragStart(e,lvKey,lvIdx,stepIdx){stepDragLvKey=lvKey;stepDragLvIdx=lvIdx;stepDragStepIdx=stepIdx;e.stopPropagation();}
+function stepDrop(e,lvKey,lvIdx,toStepIdx){
+  e.preventDefault();e.stopPropagation();
+  if(stepDragLvKey!==lvKey||stepDragLvIdx!==lvIdx||stepDragStepIdx===toStepIdx)return;
+  const c=lvKey==='benson_lv'?'benson':'cc';
+  const openWBs=getOpenWBs(c);
+  const rows=loadLV(lvKey);
+  const steps=rows[lvIdx].steps;
+  const [moved]=steps.splice(stepDragStepIdx,1);
+  steps.splice(toStepIdx,0,moved);
+  saveLV(lvKey,rows);
+  fbSaveLV(lvKey);
+  renderMaster(c);
+  openWBs.forEach(bid=>{const el=document.getElementById(bid);const arr=document.getElementById('arr_'+bid);if(el){el.classList.remove('collapsed');if(arr)arr.textContent='▴';}});
+}
+
+// ── Render master task list ──
+function renderMaster(c){
+  const weeks=TASKS[c];const done=loadTD(c);
+  const el=document.getElementById(`${c}-tasks-master`);if(!el)return;
+  el.innerHTML=weeks.map((wk,wi)=>{
+    const mustAll=wk.items.filter(t=>t.must).every(t=>done[t.id]);
+    const bid=`wb_${c}_${wi}`;const open=false;
+    return `<div class="week-block ${wk.wind?'wind-down':''}">
+      <div class="wbhdr" onclick="toggleWB('${bid}')">
+        <span class="wbtitle">
+          <span class="phase-tag ${wk.wind?'phase-wind':'phase-main'}">${wk.wind?'收尾':'主力'}</span>
+          ${WEEKS[wk.w].lbl} <span class="wbrange">${WEEKS[wk.w].range}</span>
+        </span>
+        <span style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+          ${mustAll?'<span class="tmi-tag tag-done">✓ 完成</span>':''}
+          <span id="arr_${bid}" style="color:var(--gray);font-size:13px;">${open?'▴':'▾'}</span>
+        </span>
+      </div>
+      <div class="wbbody ${open?'':'collapsed'}" id="${bid}">
+        ${wk.items.map(t=>{
+          const isDone=done[t.id]||false;
+          const cls=isDone?'completed':t.must?'must':'opt';
+          let extra='';
+          if(t.lv) extra=renderLV(t.lvKey,t.lvBasic,t.lvFull);
+          else if(t.ig) extra=renderIG(t.igKey,t.igHint,t.multi);
+          else if(t.vid) extra=renderVid(t.vidKey,t.vidHint);
+          else if(t.shoot) extra=renderShoot(t.shootKey,t.shootType);
+          else if(t.daily) extra=renderDaily(t.dailyKey);
+          return `<div class="tmi ${cls}">
+            <input type="checkbox" class="tmi-chk" ${isDone?'checked':''} onchange="toggleMT('${c}','${t.id}',this.checked)">
+            <div class="tmi-body">
+              <div class="tmi-name ${isDone?'stk':''}">${t.name}</div>
+              ${t.kpi?`<div class="tmi-kpi">${t.kpi}</div>`:''}
+              ${extra}
+              <div class="tmi-tags">
+                <span class="tmi-tag ${t.must?'tag-must':'tag-opt'}">${t.must?'必做':'選做'}</span>
+                <span class="tmi-tag tag-dl">期限 ${t.dl}</span>
+                ${isDone?'<span class="tmi-tag tag-done">已完成</span>':''}
+              </div>
+              ${isDone?`<div style="display:flex;align-items:center;gap:5px;margin-top:5px;">
+                <span style="font-size:10px;color:#6B7B80;">✓ 完成日期：</span>
+                <input type="date" style="border:1px solid #C8D8DC;border-radius:6px;padding:3px 7px;font-size:11px;font-family:var(--font);color:#284957;background:#fff;outline:none;cursor:pointer;" value="${loadTDate(c,t.id)}" onchange="saveTDate('${c}','${t.id}',this.value)">
+              </div>`:''}
+            </div></div>`;
+        }).join('')}
+        ${(()=>{
+          const wTasks=loadWTask(c,wk.w);
+          const wTaskRows=wTasks.map((t,i)=>`
+            <div class="task-row" style="background:#fff;border:1px solid var(--border);">
+              <input type="checkbox" ${t.done?'checked':''} style="width:16px;height:16px;cursor:pointer;accent-color:${COACH_COLORS[c]||'var(--deep)'};" onchange="toggleWTask('${c}',${wk.w},${i})">
+              <span class="task-txt ${t.done?'done':''}">${esc(t.text)}</span>
+              ${loadTDate(c,t.id)?`<span style="font-size:11px;color:var(--gray);white-space:nowrap;margin-right:4px;">✓ ${loadTDate(c,t.id)}</span>`:''}
+              <button class="task-del" onclick="delWTask('${c}',${wk.w},${i})">×</button>
+            </div>`).join('');
+          return `<div style="margin-top:4px;padding-top:6px;border-top:1px dashed var(--border);">
+            ${wTaskRows}
+            <div style="display:flex;gap:5px;margin-top:5px;">
+              <input id="wtask_inp_${c}_${wk.w}" style="flex:1;border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:12px;font-family:var(--font);color:var(--text);background:var(--bg);outline:none;min-width:0;" placeholder="本週新增額外任務…" onkeydown="if(event.key==='Enter')addWTask('${c}',${wk.w})">
+              <button style="border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer;border:1px solid ${COACH_COLORS[c]||'var(--deep)'};background:transparent;color:${COACH_COLORS[c]||'var(--deep)'};font-family:var(--font);white-space:nowrap;" onclick="addWTask('${c}',${wk.w})">＋ 新增</button>
+            </div>
+          </div>`;
+        })()}
+      </div></div>`;
+  }).join('');
+}
+function getOpenWBs(c){
+  const open=[];
+  document.querySelectorAll(`[id^="wb_${c}_"]`).forEach(el=>{
+    if(!el.classList.contains('collapsed')) open.push(el.id);
+  });
+  return open;
+}
+function toggleWB(bid){
+  const el=document.getElementById(bid);const arr=document.getElementById('arr_'+bid);
+  const c=el.classList.toggle('collapsed');if(arr)arr.textContent=c?'▾':'▴';
+}
+function toggleMT(c,id,checked){
+  const openWBs=getOpenWBs(c);
+  const d=loadTD(c);d[id]=checked;saveTD(c,d);
+  renderMaster(c);
+  openWBs.forEach(bid=>{
+    const el=document.getElementById(bid);
+    const arr=document.getElementById('arr_'+bid);
+    if(el){el.classList.remove('collapsed');if(arr)arr.textContent='▴';}
+  });
+  updateDash();
+  fbSaveTask(c,id,checked,loadTDate(c,id));
+}
+
+function toggleHistDetail(id){
+  const el=document.getElementById(id);
+  const arr=document.getElementById('arr_'+id);
+  if(!el) return;
+  const open = el.style.display==='block';
+  el.style.display=open?'none':'block';
+  if(arr) arr.textContent=open?'▾':'▴';
+}
+function renderHist(c){
+  const el=document.getElementById(`${c}-hist`);if(!el)return;
+  const entries=[];
+  for(let w=0;w<WEEKS.length;w++){
+    const d=loadR(c,w);
+    if((d.done&&d.done.length)||(d.plan&&d.plan.length)||d.blocker||d.score)entries.unshift({w,d});
+  }
+  if(!entries.length){el.innerHTML='<div style="font-size:13px;color:#9CA3AF;padding:6px 0;">尚無歷史週報</div>';return;}
+  el.innerHTML=entries.map(e=>{
+    const hid=`hd_${c}_${e.w}`;
+    const doneItems=(e.d.done||[]).map(t=>`<div style="display:flex;gap:6px;padding:2px 0;"><span style="color:#6DB784;flex-shrink:0;font-size:12px;">✓</span><span style="font-size:12px;color:#374151;line-height:1.5;">${esc(typeof t==='string'?t:(t.text||''))}</span></div>`).join('');
+    const planItems=(e.d.plan||[]).map(t=>`<div style="display:flex;gap:6px;padding:2px 0;"><span style="color:#60A5FA;flex-shrink:0;font-size:12px;">→</span><span style="font-size:12px;color:#374151;line-height:1.5;">${esc(typeof t==='string'?t:(t.text||''))}</span></div>`).join('');
+    return `<div class="hist-item" style="cursor:default;">
+      <div class="hist-top" onclick="toggleHistDetail('${hid}')" style="cursor:pointer;">
+        <span class="hist-week">${WEEKS[e.w].lbl} <span style="font-weight:400;color:#9CA3AF;font-size:11px;">${WEEKS[e.w].range}</span></span>
+        <span style="display:flex;align-items:center;gap:8px;">
+          ${e.d.score?`<span class="hist-score">⭐ ${e.d.score}/5</span>`:''}
+          <span id="arr_${hid}" style="color:#9CA3AF;font-size:12px;">▾</span>
+        </span>
+      </div>
+      <div class="hist-prev" onclick="toggleHistDetail('${hid}')" style="cursor:pointer;">
+        ${e.d.done&&e.d.done.length?`完成 ${e.d.done.length} 項`:''}
+        ${e.d.done&&e.d.done.length&&e.d.blocker?'・':''}
+        ${e.d.blocker?`卡點：${e.d.blocker.slice(0,40)}${e.d.blocker.length>40?'…':''}`:''}
+        ${!e.d.done?.length&&!e.d.blocker?'點擊展開':''}
+      </div>
+      <div id="${hid}" style="display:none;margin-top:8px;border-top:1px solid #F3F4F6;padding-top:8px;">
+        ${doneItems?`<div style="margin-bottom:8px;"><div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:4px;">✅ 本週完成</div>${doneItems}</div>`:''}
+        ${planItems?`<div style="margin-bottom:8px;"><div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:4px;">📅 下週計畫</div>${planItems}</div>`:''}
+        ${e.d.blocker?`<div style="margin-bottom:8px;"><div style="font-size:11px;font-weight:600;color:#6B7280;margin-bottom:4px;">🚧 卡點</div><div style="font-size:12px;color:#374151;line-height:1.6;white-space:pre-wrap;">${esc(e.d.blocker)}</div></div>`:''}
+        <button onclick="selectWeek(${e.w})" style="margin-top:6px;font-size:11px;padding:4px 12px;border:1px solid #D1D5DB;border-radius:6px;background:#fff;cursor:pointer;color:#6B7280;">前往此週填寫 →</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateDash(){
+  const msFlat=[
+    ...MILESTONES.benson.map(m=>({...m,coach:'benson'})),
+    ...MILESTONES.cc.map(m=>({...m,coach:'cc'})),
+    ...FOUNDER_MS.darren.map(m=>({...m,coach:'darren'})),
+    ...FOUNDER_MS.vivi.map(m=>({...m,coach:'vivi'})),
+  ];
+  const msD={};
+  ['benson','cc'].forEach(c=>{msD[c]=loadMs(c);});
+  ['darren','vivi'].forEach(c=>{msD[c]=loadFMs(c);});
+  const pending=msFlat.filter(m=>(msD[m.coach][m.key]||'pending')!=='done').slice(0,5);
+  const stL={pending:'進行中',done:'完成','at-risk':'風險',overdue:'延遲'};
+  document.getElementById('dash-ms').innerHTML=pending.length
+    ?pending.map(m=>{const st=msD[m.coach][m.key]||'pending';
+      return `<div class="ms-row"><div class="ms-dot ${st}"></div><span class="ms-name">${NAMES[m.coach]}・${m.name}</span><span class="ms-badge ${st}">${stL[st]}</span></div>`;
+    }).join('')
+    :'<div style="font-size:12px;color:var(--success);">所有里程碑完成 🎉</div>';
+  const allProgs=[
+    ...['benson','cc'].map(c=>{
+      const td=loadTD(c);const must=TASKS[c].flatMap(wk=>wk.items.filter(t=>t.must));
+      const pct=must.length?Math.round(must.filter(t=>td[t.id]).length/must.length*100):0;
+      return {name:NAMES[c],pct,color:'var(--deep)'};
+    }),
+    ...['darren','vivi'].map(c=>{
+      const td=loadFT(c);const all=FOUNDER_TASKS[c].flatMap(cat=>cat.items.filter(t=>t.must));
+      const pct=all.length?Math.round(all.filter(t=>td[t.id]).length/all.length*100):0;
+      return {name:NAMES[c],pct,color:c==='darren'?'#D4820A':'#D946A8'};
+    }),
+  ];
+  document.getElementById('dash-prog').innerHTML=allProgs.map(p=>
+    `<div class="prog-row"><div class="prog-top"><span style="font-size:12px;color:var(--text)">${p.name}</span><span style="font-size:12px;font-weight:500;color:${p.color}">${p.pct}%</span></div><div class="prog-bg"><div class="prog-fill" style="width:${p.pct}%;background:${p.color};"></div></div></div>`
+  ).join('');
+  let td2=0,bl=0;
+  ['benson','cc'].forEach(c=>{const d=loadR(c,curWeek);td2+=(d.done||[]).filter(t=>t.done).length;if(d.blocker&&d.blocker.trim())bl++;});
+  const days=Math.max(0,72-(curWeek*7));
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat-box"><div class="stat-val">${td2}</div><div class="stat-lbl">本週完成事項</div></div>
+    <div class="stat-box"><div class="stat-val">${bl}</div><div class="stat-lbl">待解卡點</div></div>
+    <div class="stat-box"><div class="stat-val">${curWeek+1}/10</div><div class="stat-lbl">目前週次</div></div>
+    <div class="stat-box"><div class="stat-val">${days}</div><div class="stat-lbl">距 7/1 天數</div></div>`;
+}
+
+function buildFounderPanel(){
+  // handled per-person
+}
+
+function buildFounderPanelFor(c){
+  const isD=c==='darren';
+  const col=isD?'darren':'vivi';
+  const accentCol=isD?'#4B5563':'#C2570A';
+  const intro=isD
+    ?'負責人事合約、課程定價、海外行程、會員制度、預約系統架設、滑雪機器廠商、短影音建議、會計師與建築師窗口。'
+    :'負責網頁 UI/UX 設計、社群排程與發布、室內裝潢、制服與產品設計、客服應對製作與 app、相關美編。';
+  const panel=document.getElementById(`panel-${c}`);
+  if(!panel)return;
+
+  const ms=FOUNDER_MS[c];
+  const msData=loadFMs(c);
+  const customMs=loadFMsCustom(c);
+  const stL={pending:'進行中',done:'完成','at-risk':'風險',overdue:'延遲'};
+  const builtinMsRows=ms.map(m=>{
+    const st=msData[m.key]||'pending';
+    return `<div class="fms-row">
+      <span class="fms-name">${m.name}</span>
+      <span class="fms-dl">${m.dl}</span>
+      <select class="fms-sel" onchange="updateFMs('${c}','${m.key}',this.value)">
+        <option value="pending" ${st==='pending'?'selected':''}>進行中</option>
+        <option value="done" ${st==='done'?'selected':''}>已完成</option>
+        <option value="at-risk" ${st==='at-risk'?'selected':''}>有風險</option>
+        <option value="overdue" ${st==='overdue'?'selected':''}>延遲</option>
+      </select>
+    </div>`;
+  }).join('');
+  const customMsRows=customMs.map((m,mi)=>`
+    <div class="fms-row" style="position:relative;">
+      <input style="flex:1;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;font-family:var(--font);color:var(--text);background:#fff;outline:none;min-width:0;margin-right:4px;" value="${esc(m.name)}" placeholder="里程碑名稱" onchange="(()=>{const items=loadFMsCustom('${c}');items[${mi}].name=this.value;saveFMsCustom('${c}',items);})()" oninput="(()=>{const items=loadFMsCustom('${c}');items[${mi}].name=this.value;saveFMsCustom('${c}',items);})()">
+      <input type="date" style="border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px;font-family:var(--font);color:var(--text);background:#fff;outline:none;margin-right:4px;width:130px;" value="${esc(m.dl||'')}" onchange="updateFMsCustomDl('${c}',${mi},this.value)">
+      <select class="fms-sel" onchange="updateFMsCustomStatus('${c}',${mi},this.value)">
+        <option value="pending" ${(m.status||'pending')==='pending'?'selected':''}>進行中</option>
+        <option value="done" ${m.status==='done'?'selected':''}>已完成</option>
+        <option value="at-risk" ${m.status==='at-risk'?'selected':''}>有風險</option>
+        <option value="overdue" ${m.status==='overdue'?'selected':''}>延遲</option>
+      </select>
+      <button onclick="delFMsCustom('${c}',${mi})" style="background:none;border:none;cursor:pointer;color:#C5D5D8;font-size:15px;padding:0 3px;margin-left:2px;">×</button>
+    </div>`).join('');
+  const msHTML=builtinMsRows+customMsRows;
+
+  const tasks=FOUNDER_TASKS[c];
+  const ftDone=loadFT(c);
+
+  const tasksHTML=tasks.map((cat,ci)=>{
+    const bid=`fcat_${c}_${ci}`;
+    const doneCount=cat.items.filter(t=>ftDone[t.id]).length;
+    const itemsHTML=cat.items.map(t=>{
+      const isDone=ftDone[t.id]||false;
+      const subs=loadFSub(c,t.id);
+      const doneDate=loadFDate(c,t.id);
+      const subRowsHTML=subs.map((s,si)=>`
+        <div class="fsub-row">
+          <input type="checkbox" class="fsub-chk ${col}-acc" ${s.done?'checked':''} onchange="toggleFSub('${c}','${t.id}',${si})">
+          <span class="fsub-txt ${s.done?'done':''}">${esc(s.t)}</span>
+          <button class="fsub-del" onclick="delFSub('${c}','${t.id}',${si})">×</button>
+        </div>`).join('');
+      return `<div class="ftask-row ${isDone?'f-done':(t.must?`must ${col}-c`:'opt')}">
+        <input type="checkbox" class="ftask-chk ${col}-acc" ${isDone?'checked':''} onchange="toggleFTask('${c}','${t.id}',this.checked)">
+        <div class="ftask-body">
+          <div class="ftask-name ${isDone?'stk':''}">${t.name}</div>
+          <div class="ftask-kpi">${t.kpi}</div>
+          <div class="ftask-tags">
+            <span class="tmi-tag ${t.must?'tag-must':'tag-opt'}">${t.must?'必做':'選做'}</span>
+            <span class="tmi-tag tag-dl">期限 ${t.dl}</span>
+            ${isDone?'<span class="tmi-tag tag-done">已完成</span>':''}
+          </div>
+          <div class="ftask-date-wrap">
+            <span class="ftask-date-lbl">${isDone?'✓ 完成日期：':'完成日期：'}</span>
+            <input type="date" class="ftask-date-inp ${col}-fi ${isDone?`ftask-date-done ${col}-d`:''}" value="${doneDate}" onchange="saveFTaskDate('${c}','${t.id}',this.value)">
+          </div>
+          <div class="fsub-wrap">
+            ${subs.length?`<div class="fsub-list">${subRowsHTML}</div>`:''}
+            <button class="fsub-open-btn ${col}-btn" onclick="toggleFSubInput('${c}','${t.id}')">＋ 新增待辦事項</button>
+            <div class="fsub-input-wrap" id="fsub_wrap_${c}_${t.id}">
+              <input id="fsub_inp_${c}_${t.id}" class="${col}-fi" style="flex:1;border:1px solid #C8D8DC;border-radius:7px;padding:6px 9px;font-size:12px;font-family:var(--font);color:#284957;background:#F2F6F7;outline:none;margin-right:5px;min-width:0;" placeholder="輸入待辦事項，Enter 確認…" onkeydown="if(event.key==='Enter')addFSub('${c}','${t.id}')">
+              <button class="fsub-confirm-btn ${col}-btn" onclick="addFSub('${c}','${t.id}')">新增</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="fcat-block">
+      <div class="fcat-hdr ${col}" onclick="toggleFCat('${bid}')">
+        <span class="fcat-title ${col}">${cat.cat}</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;color:${accentCol};">${doneCount}/${cat.items.length} 完成</span>
+          <span id="farr_${bid}" style="color:${accentCol};font-size:13px;">▾</span>
+        </span>
+      </div>
+      <div class="fcat-body collapsed" id="${bid}">${itemsHTML}</div>
+    </div>`;
+  }).join('');
+
+  panel.innerHTML=`
+    <div class="founder-panel-wrap">
+      <div class="founder-intro ${col}"><strong>${isD?'Darren':'Vivi'}</strong>${intro}</div>
+      ${tasksHTML}
+      ${(()=>{
+        const customCats=getCustomCats(c);
+        return customCats.map((cat,ci)=>{
+          const bid=`fcat_custom_${c}_${ci}`;
+          const ftDoneC=loadFT(c);
+          const itemsHTML=cat.items.map(t=>{
+            const isDone=ftDoneC[t.id]||false;
+            const subs=loadFSub(c,t.id);
+            const subRowsHTML=subs.map((s,si)=>`
+              <div class="fsub-row">
+                <input type="checkbox" class="fsub-chk ${col}-acc" ${s.done?'checked':''} onchange="toggleFSub('${c}','${t.id}',${si})">
+                <span class="fsub-txt ${s.done?'done':''}">${esc(s.t)}</span>
+                <button class="fsub-del" onclick="delFSub('${c}','${t.id}',${si})">×</button>
+              </div>`).join('');
+            const doneDate=loadFDate(c,t.id);
+            return `<div class="ftask-row ${isDone?'f-done':`must ${col}-c`}">
+              <input type="checkbox" class="ftask-chk ${col}-acc" ${isDone?'checked':''} onchange="toggleFTask('${c}','${t.id}',this.checked)">
+              <div class="ftask-body">
+                <div class="ftask-name ${isDone?'stk':''}">${t.name}</div>
+                <div class="ftask-date-wrap">
+                  <span class="ftask-date-lbl">${isDone?'✓ 完成日期：':'完成日期：'}</span>
+                  <input type="date" class="ftask-date-inp ${col}-fi ${isDone?`ftask-date-done ${col}-d`:''}" value="${doneDate}" onchange="saveFTaskDate('${c}','${t.id}',this.value)">
+                </div>
+                <div class="fsub-wrap">
+                  ${subs.length?`<div class="fsub-list">${subRowsHTML}</div>`:''}
+                  <button class="fsub-open-btn ${col}-btn" onclick="toggleFSubInput('${c}','${t.id}')">＋ 新增待辦事項</button>
+                  <div class="fsub-input-wrap" id="fsub_wrap_${c}_${t.id}">
+                    <input id="fsub_inp_${c}_${t.id}" class="${col}-fi" style="flex:1;border:1px solid #C8D8DC;border-radius:7px;padding:6px 9px;font-size:12px;font-family:var(--font);color:#284957;background:#F2F6F7;outline:none;margin-right:5px;min-width:0;" placeholder="輸入待辦事項，Enter 確認…" onkeydown="if(event.key==='Enter')addFSub('${c}','${t.id}')">
+                    <button class="fsub-confirm-btn ${col}-btn" onclick="addFSub('${c}','${t.id}')">新增</button>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+          }).join('');
+          return `<div class="fcat-block">
+            <div class="fcat-hdr ${col}" onclick="toggleFCat('${bid}')">
+              <span class="fcat-title ${col}">${cat.cat}</span>
+              <span style="display:flex;align-items:center;gap:8px;">
+                <button onclick="event.stopPropagation();delCustomCat('${c}',${ci})" style="background:none;border:none;cursor:pointer;color:#C5D5D8;font-size:13px;padding:0 3px;">刪除分類</button>
+                <span id="farr_${bid}" style="color:${accentCol};font-size:13px;">▾</span>
+              </span>
+            </div>
+            <div class="fcat-body collapsed" id="${bid}">
+              ${itemsHTML}
+              <div style="display:flex;gap:6px;margin-top:5px;">
+                <input id="fcat_task_inp_${c}_${ci}" style="flex:1;border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:12px;font-family:var(--font);color:var(--text);background:var(--bg);outline:none;min-width:0;" placeholder="新增任務…" onkeydown="if(event.key==='Enter')addCustomCatTask('${c}',${ci})">
+                <button style="border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer;border:1px solid ${accentCol};background:transparent;color:${accentCol};font-family:var(--font);white-space:nowrap;" onclick="addCustomCatTask('${c}',${ci})">＋ 新增</button>
+              </div>
+            </div>
+          </div>`;
+        }).join('');
+      })()}
+      <div style="margin-top:.5rem;">
+        <div style="font-size:11px;font-weight:500;color:${accentCol};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">🎯 里程碑</div>
+        ${(()=>{
+          const stL={pending:'進行中',done:'完成','at-risk':'風險',overdue:'延遲'};
+          const stColor={pending:accentCol,done:'#1A7A4A','at-risk':'#D4820A',overdue:'#B83232'};
+          const stBg={pending:'transparent',done:'#E1F5EE','at-risk':'#FEF3E2',overdue:'#FDECEC'};
+          const builtinBlocks=ms.map((m,mi)=>{
+            const st=msData[m.key]||'pending';
+            const bid=`fms_bi_${c}_${mi}`;
+            const subs=loadFSub(c,'ms_'+m.key);
+            const subRows=subs.map((s,si)=>`
+              <div class="fsub-row">
+                <input type="checkbox" class="fsub-chk ${col}-acc" ${s.done?'checked':''} onchange="toggleFSub('${c}','ms_${m.key}',${si})">
+                <span class="fsub-txt ${s.done?'done':''}">${esc(s.t)}</span>
+                <button class="fsub-del" onclick="delFSub('${c}','ms_${m.key}',${si})">×</button>
+              </div>`).join('');
+            return `<div class="fcat-block">
+              <div class="fcat-hdr ${col}" onclick="toggleFCat('${bid}')">
+                <span class="fcat-title ${col}" style="display:flex;align-items:center;gap:8px;">
+                  ${m.name}
+                  <span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;background:${stBg[st]||'transparent'};color:${stColor[st]||accentCol};border:1px solid ${stColor[st]||accentCol};">${stL[st]}</span>
+                </span>
+                <span style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:11px;color:var(--gray);">${m.dl}</span>
+                  <span id="farr_${bid}" style="color:${accentCol};font-size:13px;">▾</span>
+                </span>
+              </div>
+              <div class="fcat-body collapsed" id="${bid}">
+                <div style="padding:4px 0 6px;">
+                  <select class="fms-sel" onchange="updateFMs('${c}','${m.key}',this.value)">
+                    <option value="pending" ${st==='pending'?'selected':''}>進行中</option>
+                    <option value="done" ${st==='done'?'selected':''}>已完成</option>
+                    <option value="at-risk" ${st==='at-risk'?'selected':''}>有風險</option>
+                    <option value="overdue" ${st==='overdue'?'selected':''}>延遲</option>
+                  </select>
+                </div>
+                ${subs.length?`<div class="fsub-list">${subRows}</div>`:''}
+                <button class="fsub-open-btn ${col}-btn" onclick="toggleFSubInput('${c}','ms_${m.key}')">＋ 新增待辦細項</button>
+                <div class="fsub-input-wrap" id="fsub_wrap_${c}_ms_${m.key}">
+                  <input id="fsub_inp_${c}_ms_${m.key}" style="flex:1;border:1px solid #C8D8DC;border-radius:7px;padding:6px 9px;font-size:12px;font-family:var(--font);color:#284957;background:#F2F6F7;outline:none;margin-right:5px;min-width:0;" placeholder="新增細項…" onkeydown="if(event.key==='Enter')addFSub('${c}','ms_${m.key}')">
+                  <button class="fsub-confirm-btn ${col}-btn" onclick="addFSub('${c}','ms_${m.key}')">新增</button>
+                </div>
+              </div>
+            </div>`;
+          }).join('');
+          const customMs=loadFMsCustom(c);
+          const customBlocks=customMs.map((m,mi)=>{
+            const st=m.status||'pending';
+            const bid=`fms_cu_${c}_${mi}`;
+            const subs=loadFSub(c,'msc_'+mi+'_'+c);
+            const subRows=subs.map((s,si)=>`
+              <div class="fsub-row">
+                <input type="checkbox" class="fsub-chk ${col}-acc" ${s.done?'checked':''} onchange="toggleFSub('${c}','msc_${mi}_${c}',${si})">
+                <span class="fsub-txt ${s.done?'done':''}">${esc(s.t)}</span>
+                <button class="fsub-del" onclick="delFSub('${c}','msc_${mi}_${c}',${si})">×</button>
+              </div>`).join('');
+            return `<div class="fcat-block">
+              <div class="fcat-hdr ${col}" onclick="toggleFCat('${bid}')">
+                <span class="fcat-title ${col}" style="display:flex;align-items:center;gap:8px;">
+                  <input value="${esc(m.name)}" style="border:none;background:transparent;font-size:13px;font-weight:500;color:${accentCol};font-family:var(--font);outline:none;min-width:60px;" oninput="(()=>{const items=loadFMsCustom('${c}');items[${mi}].name=this.value;saveFMsCustom('${c}',items);})()" onclick="event.stopPropagation()">
+                  <span style="font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;background:${stBg[st]||'transparent'};color:${stColor[st]||accentCol};border:1px solid ${stColor[st]||accentCol};">${stL[st]}</span>
+                </span>
+                <span style="display:flex;align-items:center;gap:6px;">
+                  <button onclick="event.stopPropagation();delFMsCustom('${c}',${mi})" style="background:none;border:none;cursor:pointer;color:#C5D5D8;font-size:13px;padding:0 3px;">×</button>
+                  <span id="farr_${bid}" style="color:${accentCol};font-size:13px;">▾</span>
+                </span>
+              </div>
+              <div class="fcat-body collapsed" id="${bid}">
+                <div style="display:flex;align-items:center;gap:8px;padding:4px 0 8px;flex-wrap:wrap;">
+                  <select class="fms-sel" onchange="updateFMsCustomStatus('${c}',${mi},this.value)">
+                    <option value="pending" ${st==='pending'?'selected':''}>進行中</option>
+                    <option value="done" ${st==='done'?'selected':''}>已完成</option>
+                    <option value="at-risk" ${st==='at-risk'?'selected':''}>有風險</option>
+                    <option value="overdue" ${st==='overdue'?'selected':''}>延遲</option>
+                  </select>
+                  <div style="display:flex;align-items:center;gap:4px;">
+                    <span style="font-size:11px;color:var(--gray);">期限</span>
+                    <input type="date" style="border:1px solid var(--border);border-radius:6px;padding:4px 7px;font-size:11px;font-family:var(--font);color:var(--text);background:#fff;outline:none;" value="${esc(m.dl||'')}" onchange="updateFMsCustomDl('${c}',${mi},this.value)">
+                  </div>
+                </div>
+                ${subs.length?`<div class="fsub-list">${subRows}</div>`:''}
+                <button class="fsub-open-btn ${col}-btn" onclick="toggleFSubInput('${c}','msc_${mi}_${c}')">＋ 新增待辦細項</button>
+                <div class="fsub-input-wrap" id="fsub_wrap_${c}_msc_${mi}_${c}">
+                  <input id="fsub_inp_${c}_msc_${mi}_${c}" style="flex:1;border:1px solid #C8D8DC;border-radius:7px;padding:6px 9px;font-size:12px;font-family:var(--font);color:#284957;background:#F2F6F7;outline:none;margin-right:5px;min-width:0;" placeholder="新增細項…" onkeydown="if(event.key==='Enter')addFSub('${c}','msc_${mi}_${c}')">
+                  <button class="fsub-confirm-btn ${col}-btn" onclick="addFSub('${c}','msc_${mi}_${c}')">新增</button>
+                </div>
+              </div>
+            </div>`;
+          }).join('');
+          return builtinBlocks+customBlocks;
+        })()}
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <input id="fms_new_inp_${c}" style="flex:1;border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;font-family:var(--font);color:var(--text);background:var(--bg);outline:none;min-width:0;" placeholder="新增里程碑…" onkeydown="if(event.key==='Enter')addFMsCustom('${c}')">
+          <button style="border-radius:7px;padding:7px 14px;font-size:12px;cursor:pointer;border:1px solid ${accentCol};background:${accentCol};color:#fff;font-family:var(--font);white-space:nowrap;font-weight:500;" onclick="addFMsCustom('${c}')">＋ 新增</button>
+        </div>
+      </div>
+    </div>
+    <div style="padding:0 1rem .5rem;">
+      <div style="font-size:11px;font-weight:500;color:${accentCol};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">＋ 新增任務大項</div>
+      <div style="display:flex;gap:6px;">
+        <input id="fcat_new_inp_${c}" style="flex:1;border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13px;font-family:var(--font);color:var(--text);background:var(--bg);outline:none;min-width:0;" placeholder="輸入新分類名稱…" onkeydown="if(event.key==='Enter')addFCatCustom('${c}')">
+        <button style="border-radius:7px;padding:8px 16px;font-size:13px;cursor:pointer;border:1px solid ${accentCol};background:${accentCol};color:#fff;font-family:var(--font);white-space:nowrap;font-weight:500;" onclick="addFCatCustom('${c}')">新增大項</button>
+      </div>
+    </div>
+    <hr class="sep" style="margin:0 1rem;">
+    <div class="founder-note-wrap" style="margin-top:.5rem;">
+      <div class="founder-note-lbl ${col}">📝 ${isD?'Darren':'Vivi'} 備忘與進度說明</div>
+      <textarea id="${c}-note" placeholder="本週進度說明、與教練的同步事項、重要待辦…" style="min-height:90px;" oninput="saveFounderNote('${c}')"></textarea>
+    </div>
+    <div style="padding:0 1rem .75rem;display:flex;justify-content:flex-end;">
+      <button class="btn-save" style="background:${accentCol};" onclick="saveFounderNote('${c}');showToast('${isD?'Darren':'Vivi'} 備忘已儲存 ✓')">儲存備忘</button>
+    </div>
+  `;
+
+  // Restore note
+  const noteEl=document.getElementById(`${c}-note`);
+  if(noteEl) noteEl.value=localStorage.getItem(`skio_fnote_${c}`)||'';
+}
+
+function toggleFCat(bid){
+  const el=document.getElementById(bid);const arr=document.getElementById('farr_'+bid);
+  if(!el)return;
+  const c=el.classList.toggle('collapsed');if(arr)arr.textContent=c?'▾':'▴';
+}
+
+function toggleFTask(c,id,checked){
+  const d=loadFT(c);d[id]=checked;saveFT(c,d);
+  rebuildFounder(c);updateDash();
+  fbSaveFTask(c,id,checked);
+}
+
+function updateFMs(c,key,val){
+  const d=loadFMs(c);d[key]=val;saveFMs(c,d);updateDash();
+}
+
+function saveFounderNote(c){
+  const el=document.getElementById(`${c}-note`);
+  if(el) localStorage.setItem(`skio_fnote_${c}`,el.value);
+}
+
+
+function saveFTaskDate(c,tid,val){
+  saveFDate(c,tid,val);
+  rebuildFounder(c);
+}
+
+function addWTask(c,w){
+  const inp=document.getElementById(`wtask_inp_${c}_${w}`);
+  if(!inp)return;
+  const txt=inp.value.trim();if(!txt)return;
+  const openWBs=getOpenWBs(c);
+  const tasks=loadWTask(c,w);
+  tasks.push({id:`wt_${c}_${w}_${Date.now()}`,text:txt,done:false});
+  saveWTask(c,w,tasks);
+  inp.value='';
+  renderMaster(c);
+  openWBs.forEach(bid=>{
+    const el=document.getElementById(bid);const arr=document.getElementById('arr_'+bid);
+    if(el){el.classList.remove('collapsed');if(arr)arr.textContent='▴';}
+  });
+}
+function toggleWTask(c,w,idx){
+  const openWBs=getOpenWBs(c);
+  const tasks=loadWTask(c,w);
+  tasks[idx].done=!tasks[idx].done;
+  saveWTask(c,w,tasks);
+  renderMaster(c);
+  openWBs.forEach(bid=>{
+    const el=document.getElementById(bid);const arr=document.getElementById('arr_'+bid);
+    if(el){el.classList.remove('collapsed');if(arr)arr.textContent='▴';}
+  });
+}
+function delWTask(c,w,idx){
+  const openWBs=getOpenWBs(c);
+  const tasks=loadWTask(c,w);
+  tasks.splice(idx,1);
+  saveWTask(c,w,tasks);
+  renderMaster(c);
+  openWBs.forEach(bid=>{
+    const el=document.getElementById(bid);const arr=document.getElementById('arr_'+bid);
+    if(el){el.classList.remove('collapsed');if(arr)arr.textContent='▴';}
+  });
+}
+
+function getOpenCats(c){
+  const open=[];
+  document.querySelectorAll(`[id^="fcat_${c}_"]`).forEach(el=>{
+    if(!el.classList.contains('collapsed')) open.push(el.id);
+  });
+  return open;
+}
+function getOpenSubInputs(c){
+  const open=[];
+  document.querySelectorAll(`[id^="fsub_wrap_${c}_"]`).forEach(el=>{
+    if(el.classList.contains('open')) open.push(el.id);
+  });
+  return open;
+}
+function rebuildFounder(c, keepSubOpen){
+  const openCats=getOpenCats(c);
+  const openSubs=getOpenSubInputs(c);
+  buildFounderPanelFor(c);
+  // Restore open categories
+  openCats.forEach(id=>{
+    const el=document.getElementById(id);
+    const arr=document.getElementById('farr_'+id);
+    if(el){el.classList.remove('collapsed');if(arr)arr.textContent='▴';}
+  });
+  // Restore open sub-input fields
+  const subsToOpen=keepSubOpen?[...openSubs,`fsub_wrap_${c}_${keepSubOpen}`]:openSubs;
+  subsToOpen.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){
+      el.classList.add('open');
+      const inp=el.querySelector('input');
+      if(inp) setTimeout(()=>inp.focus(),30);
+    }
+  });
+}
+
+function toggleFSubInput(c,tid){
+  const wrap=document.getElementById(`fsub_wrap_${c}_${tid}`);
+  if(!wrap)return;
+  wrap.classList.toggle('open');
+  if(wrap.classList.contains('open')){
+    const inp=document.getElementById(`fsub_inp_${c}_${tid}`);
+    if(inp) setTimeout(()=>inp.focus(),50);
+  }
+}
+function addFSub(c,tid){
+  const inp=document.getElementById(`fsub_inp_${c}_${tid}`);
+  if(!inp)return;
+  const txt=inp.value.trim();if(!txt)return;
+  const subs=loadFSub(c,tid);
+  subs.push({t:txt,done:false});
+  saveFSub(c,tid,subs);
+  inp.value='';
+  rebuildFounder(c,tid);
+}
+function toggleFSub(c,tid,idx){
+  const subs=loadFSub(c,tid);
+  subs[idx].done=!subs[idx].done;
+  saveFSub(c,tid,subs);
+  rebuildFounder(c);
+}
+function delFSub(c,tid,idx){
+  const subs=loadFSub(c,tid);
+  subs.splice(idx,1);
+  saveFSub(c,tid,subs);
+  rebuildFounder(c);
+}
+
+const COACH_COLORS={benson:'#1D6FA4',cc:'#1A7A4A',darren:'#4B5563',vivi:'#C2570A'};
+function addFMsCustom(c){
+  const inp=document.getElementById(`fms_new_inp_${c}`);
+  if(!inp)return;
+  const name=inp.value.trim();if(!name)return;
+  const items=loadFMsCustom(c);
+  items.push({key:`fms_custom_${c}_${Date.now()}`,name,dl:'',status:'pending'});
+  saveFMsCustom(c,items);
+  fbSet(`fmscustom/${c}`, items);
+  inp.value='';
+  rebuildFounder(c);
+}
+function updateFMsCustomStatus(c,idx,val){
+  const items=loadFMsCustom(c);
+  items[idx].status=val;
+  saveFMsCustom(c,items);
+}
+function updateFMsCustomDl(c,idx,val){
+  const items=loadFMsCustom(c);
+  items[idx].dl=val;
+  saveFMsCustom(c,items);
+}
+function delFMsCustom(c,idx){
+  const items=loadFMsCustom(c);
+  items.splice(idx,1);
+  saveFMsCustom(c,items);
+  rebuildFounder(c);
+}
+function addFCatCustom(c){
+  const inp=document.getElementById(`fcat_new_inp_${c}`);
+  if(!inp)return;
+  const name=inp.value.trim();if(!name)return;
+  // Store custom categories separately
+  const key=`skio_fcat_custom_${c}`;
+  const cats=JSON.parse(localStorage.getItem(key)||'[]');
+  cats.push({cat:name,items:[]});
+  localStorage.setItem(key,JSON.stringify(cats));
+  fbSet(`fcats/${c}`, cats);
+  inp.value='';
+  rebuildFounder(c);
+}
+function getCustomCats(c){
+  return JSON.parse(localStorage.getItem(`skio_fcat_custom_${c}`)||'[]');
+}
+function addCustomCatTask(c,catIdx){
+  const inp=document.getElementById(`fcat_task_inp_${c}_${catIdx}`);
+  if(!inp)return;
+  const name=inp.value.trim();if(!name)return;
+  const key=`skio_fcat_custom_${c}`;
+  const cats=JSON.parse(localStorage.getItem(key)||'[]');
+  if(!cats[catIdx])return;
+  cats[catIdx].items.push({id:`fct_${c}_${catIdx}_${Date.now()}`,must:true,name,kpi:'',dl:''});
+  localStorage.setItem(key,JSON.stringify(cats));
+  fbSet(`fcats/${c}`, cats);
+  inp.value='';
+  rebuildFounder(c);
+}
+function delCustomCat(c,catIdx){
+  if(!confirm('確定刪除此分類及所有任務？'))return;
+  const key=`skio_fcat_custom_${c}`;
+  const cats=JSON.parse(localStorage.getItem(key)||'[]');
+  cats.splice(catIdx,1);
+  localStorage.setItem(key,JSON.stringify(cats));
+  fbSet(`fcats/${c}`, cats);
+  rebuildFounder(c);
+}
+
+function switchCoach(c,el){
+  document.querySelectorAll('.c-tab').forEach(t=>{t.classList.remove('active');t.style.borderBottomColor='';t.style.color='';});
+  document.querySelectorAll('.c-panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  const col=COACH_COLORS[c]||'var(--deep)';
+  el.style.borderBottomColor=col;
+  el.style.color=col;
+  document.getElementById(`panel-${c}`).classList.add('active');
+  curCoach=c;
+  if(c==='darren'||c==='vivi'){
+    document.getElementById('hdr-save-btn').textContent='備忘自動儲存';
+    buildFounderPanelFor(c);
+  } else {
+    document.getElementById('hdr-save-btn').textContent=`儲存 ${NAMES[c]}`;
+  }
+}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+
+// ══ Google Sheets Sync ══
+const GS_URL = 'https://script.google.com/macros/s/AKfycbxTkL6GYyhMCylPs-uvUU2LLIQdHjsxxN0HXACmLFDTkH5eNfvNy6UQli5HOrY7MCxd/exec';
+
+async function gsPost(body) {
+  try {
+    // Use JSONP to bypass CORS for both read and write
+    return await new Promise((resolve, reject) => {
+      const cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+      const params = new URLSearchParams({
+        callback: cbName,
+        payload: JSON.stringify(body)
+      });
+      const script = document.createElement('script');
+      const timer = setTimeout(() => {
+        delete window[cbName];
+        document.body.removeChild(script);
+        reject(new Error('timeout'));
+      }, 10000);
+      window[cbName] = (data) => {
+        clearTimeout(timer);
+        delete window[cbName];
+        document.body.removeChild(script);
+        resolve(data);
+      };
+      script.src = GS_URL + '?' + params.toString();
+      script.onerror = () => {
+        clearTimeout(timer);
+        delete window[cbName];
+        document.body.removeChild(script);
+        reject(new Error('script error'));
+      };
+      document.body.appendChild(script);
+    });
+  } catch(e) { console.warn('GS error:', e); return null; }
+}
+
+async function syncReport(c, w) {
+  const d = loadR(c, w);
+  await gsPost({action:'upsert', table:'weekly_reports', keyField:'coach_week', keyValue:c+'_'+w,
+    record:{coach:c, week:w, done_tasks:JSON.stringify(d.done||[]), plan_tasks:JSON.stringify(d.plan||[]),
+    blocker:d.blocker||'', score:d.score||0, updated_at:new Date().toISOString()}});
+  // Also sync LV framework if this coach has one
+  if(c==='benson') await syncLV('benson');
+  if(c==='cc') await syncLV('cc');
+}
+
+async function syncLV(coach) {
+  const lvKey = coach+'_lv';
+  const rows = loadLV(lvKey);
+  await gsPost({action:'upsert', table:'custom_data', keyField:'key', keyValue:'lv_'+lvKey,
+    record:{key:'lv_'+lvKey, value:JSON.stringify(rows)}});
+}
+
+async function syncTask(c, tid, done, doneDate) {
+  await gsPost({action:'upsert', table:'task_status', keyField:'coach_task', keyValue:c+'_'+tid,
+    record:{coach:c, task_id:tid, done:done?'1':'0', done_date:doneDate||''}});
+}
+
+async function syncCustom(key, value) {
+  await gsPost({action:'upsert', table:'custom_data', keyField:'key', keyValue:key,
+    record:{key:key, value:typeof value==='string'?value:JSON.stringify(value)}});
+}
+
+async function loadFromSheets() {
+  showSyncStatus('🔄 同步中...');
+  try {
+    const [reports, tasks, customs] = await Promise.all([
+      gsPost({action:'get', table:'weekly_reports'}),
+      gsPost({action:'get', table:'task_status'}),
+      gsPost({action:'get', table:'custom_data'}),
+    ]);
+    if (Array.isArray(reports)) {
+      reports.forEach(r => {
+        if (!r.coach || r.week === undefined) return;
+        const d = { done:tryParse(r.done_tasks,[]), plan:tryParse(r.plan_tasks,[]), blocker:r.blocker||'', score:Number(r.score)||0 };
+        if (d.blocker || d.done.length || d.score) saveR(r.coach, parseInt(r.week), d);
+      });
+    }
+    if (Array.isArray(tasks)) {
+      const tm = {};
+      tasks.forEach(t => {
+        if (!tm[t.coach]) tm[t.coach] = {};
+        tm[t.coach][t.task_id] = t.done === '1';
+        if (t.done_date) localStorage.setItem(tdk(t.coach, t.task_id), t.done_date);
+      });
+      Object.keys(tm).forEach(c => saveTD(c, tm[c]));
+    }
+    if (Array.isArray(customs)) {
+      customs.forEach(row => {
+        if (row.key && row.value) {
+          try {
+            const v = JSON.parse(row.value);
+            if (row.key.startsWith('fnote_')) localStorage.setItem('skio_fnote_'+row.key.slice(6), v);
+            if (row.key.startsWith('ftask_')) saveFT(row.key.slice(6), v);
+            if (row.key.startsWith('fms_')) saveFMs(row.key.slice(4), v);
+            if (row.key.startsWith('fmsc_')) saveFMsCustom(row.key.slice(5), v);
+            if (row.key.startsWith('lv_')) {
+              const lvKey = row.key.slice(3);
+              if (Array.isArray(v) && v.length > 0) saveLV(lvKey, v);
+            }
+          } catch(e) {}
+        }
+      });
+    }
+    showSyncStatus('✓ 已同步', true);
+  } catch(e) {
+    showSyncStatus('⚠ 同步失敗', false);
+  }
+}
+
+function tryParse(s, fallback) { try { return JSON.parse(s); } catch(e) { return fallback; } }
+
+function showSyncStatus(msg, ok) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.opacity = '1';
+  el.style.color = ok===true?'#A8DCC0':ok===false?'#F5A0A0':'var(--light)';
+  if (ok !== undefined) setTimeout(()=>{el.style.opacity='0';}, 3000);
+}
+
+
+// ══ Firebase 即時同步 ══
+const firebaseConfig = {
+  apiKey: "AIzaSyAd2jefI5Yj-CnKiRetuf1HbiPwgrHDqLE",
+  authDomain: "ski-o-workspace.firebaseapp.com",
+  databaseURL: "https://ski-o-workspace-default-rtdb.firebaseio.com",
+  projectId: "ski-o-workspace",
+  storageBucket: "ski-o-workspace.firebasestorage.app",
+  messagingSenderId: "524676969240",
+  appId: "1:524676969240:web:044a7904bd3df45292646d"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 寫入 Firebase
+function fbSet(path, data) {
+  return db.ref(path).set(data).catch(e => console.warn('FB write error:', e));
+}
+
+// 讀取 Firebase（一次性）
+function fbGet(path) {
+  return db.ref(path).get().then(snap => snap.exists() ? snap.val() : null).catch(e => { console.warn('FB read error:', e); return null; });
+}
+
+// 監聽變化（即時更新）
+function fbListen(path, cb) {
+  db.ref(path).on('value', snap => cb(snap.exists() ? snap.val() : null));
+}
+
+// 儲存週報到 Firebase
+let _fbSelfUpdate = false;
+function fbSaveReport(c, w) {
+  const d = loadR(c, w);
+  const el = document.getElementById(`${c}-blocker`);
+  if(el) d.blocker = el.value;
+  _fbSelfUpdate = true;
+  setTimeout(()=>{_fbSelfUpdate=false;}, 3000);
+  return fbSet(`reports/${c}/w${w}`, d);
+}
+
+// 儲存任務狀態到 Firebase
+let _fbSelfTaskUpdate = false;
+function fbSaveTask(c, id, checked, doneDate) {
+  _fbSelfTaskUpdate = true;
+  setTimeout(()=>{_fbSelfTaskUpdate=false;}, 3000);
+  return fbSet(`tasks/${c}/${id}`, {done: checked, doneDate: doneDate||''});
+}
+
+// 儲存課程框架到 Firebase
+function fbSaveLV(lvKey) {
+  _fbSelfLVUpdate = true;
+  setTimeout(()=>{_fbSelfLVUpdate=false;}, 3000);
+  const rows = loadLV(lvKey);
+  return fbSet(`lv/${lvKey}`, rows);
+}
+
+// 儲存 milestone 狀態到 Firebase
+function fbSaveMs(c, key, val) {
+  return fbSet(`ms/${c}/${key}`, val);
+}
+
+// 儲存 founder task 到 Firebase
+function fbSaveFTask(c, id, checked) {
+  return fbSet(`ftasks/${c}/${id}`, checked);
+}
+
+// 儲存 founder note 到 Firebase
+function fbSaveFNote(c, val) {
+  return fbSet(`fnotes/${c}`, val);
+}
+
+// 從 Firebase 載入所有資料
+async function fbLoadAll() {
+  showSyncStatus('🔄 同步中...');
+  try {
+    const [reports, tasks, lvBenson, lvCC, ms, ftasks, fnotes] = await Promise.all([
+      fbGet('reports'),
+      fbGet('tasks'),
+      fbGet('lv/benson_lv'),
+      fbGet('lv/cc_lv'),
+      fbGet('ms'),
+      fbGet('ftasks'),
+      fbGet('fnotes'),
+    ]);
+
+    // 週報
+    if(reports) {
+      Object.keys(reports).forEach(c => {
+        Object.keys(reports[c]).forEach(wk => {
+          const w = parseInt(wk.replace('w',''));
+          const d = reports[c][wk];
+          if(d) saveR(c, w, {done: d.done||[], plan: d.plan||[], blocker: d.blocker||'', score: d.score||0});
+        });
+      });
+    }
+
+    // 任務狀態
+    if(tasks) {
+      Object.keys(tasks).forEach(c => {
+        const td = loadTD(c);
+        Object.keys(tasks[c]).forEach(id => {
+          td[id] = tasks[c][id].done || false;
+          if(tasks[c][id].doneDate) localStorage.setItem(tdk(c,id), tasks[c][id].doneDate);
+        });
+        saveTD(c, td);
+      });
+    }
+
+    // 課程框架
+    if(lvBenson && Array.isArray(lvBenson)) saveLV('benson_lv', lvBenson);
+    if(lvCC && Array.isArray(lvCC)) saveLV('cc_lv', lvCC);
+
+    // 里程碑狀態
+    if(ms) {
+      Object.keys(ms).forEach(c => {
+        const msData = loadMs(c);
+        Object.keys(ms[c]).forEach(key => { msData[key] = ms[c][key]; });
+        saveMs(c, msData);
+      });
+    }
+
+    // Founder tasks
+    if(ftasks) {
+      Object.keys(ftasks).forEach(c => {
+        const fd = loadFT(c);
+        Object.keys(ftasks[c]).forEach(id => { fd[id] = ftasks[c][id]; });
+        saveFT(c, fd);
+      });
+    }
+
+    // Custom categories & custom milestones
+    const [fcats, fmscustom] = await Promise.all([
+      fbGet('fcats'),
+      fbGet('fmscustom'),
+    ]);
+    if(fcats) {
+      Object.keys(fcats).forEach(c => {
+        if(Array.isArray(fcats[c]))
+          localStorage.setItem(`skio_fcat_custom_${c}`, JSON.stringify(fcats[c]));
+      });
+    }
+    if(fmscustom) {
+      Object.keys(fmscustom).forEach(c => {
+        if(Array.isArray(fmscustom[c])) saveFMsCustom(c, fmscustom[c]);
+      });
+    }
+
+    // Founder notes
+    if(fnotes) {
+      Object.keys(fnotes).forEach(c => {
+        localStorage.setItem(`skio_fnote_${c}`, fnotes[c]);
+      });
+    }
+
+    showSyncStatus('✓ 已同步', true);
+  } catch(e) {
+    console.warn('fbLoadAll error:', e);
+    showSyncStatus('⚠ 同步失敗', false);
+  }
+}
+
+// 監聽即時更新（其他人改了，我的畫面自動更新）
+function fbStartListening() {
+  db.ref('reports').on('value', snap => {
+    if(!snap.exists()) return;
+    if(_fbSelfUpdate) return;
+    const reports = snap.val();
+    Object.keys(reports).forEach(c => {
+      Object.keys(reports[c]).forEach(wk => {
+        const w = parseInt(wk.replace('w',''));
+        const d = reports[c][wk];
+        if(d) saveR(c, w, {done:d.done||[], plan:d.plan||[], blocker:d.blocker||'', score:d.score||0});
+      });
+    });
+    // Only update visible elements without re-rendering
+    COACHES.filter(c=>c!=='darren'&&c!=='vivi').forEach(c=>{
+      const d = loadR(c, curWeek);
+      // Update blocker
+      const blockerEl = document.getElementById(c+'-blocker');
+      if(blockerEl) blockerEl.value = d.blocker||'';
+      // Update score buttons
+      const scoreBtns = document.querySelectorAll(`#${c}-score .score-btn`);
+      scoreBtns.forEach((btn,i)=>{
+        if(i+1===d.score) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+      // Update done/plan lists
+      renderCoach(c);
+      renderHist(c);
+    });
+    updateDash();
+  });
+
+  db.ref('tasks').on('value', snap => {
+    if(!snap.exists()) return;
+    if(_fbSelfTaskUpdate) return;
+    const tasks = snap.val();
+    Object.keys(tasks).forEach(c => {
+      const td = loadTD(c);
+      Object.keys(tasks[c]).forEach(id => {
+        const prevDone = td[id]||false;
+        td[id] = tasks[c][id].done||false;
+        if(tasks[c][id].doneDate) localStorage.setItem(tdk(c,id), tasks[c][id].doneDate);
+        // Update DOM directly without re-rendering
+        if(prevDone !== td[id]) {
+          const chk = document.querySelector(`input[onchange*="toggleMT('${c}','${id}'"]`);
+          if(chk) {
+            chk.checked = td[id];
+            const row = chk.closest('.task-row');
+            if(row) {
+              if(td[id]) { row.classList.add('t-done'); row.classList.remove('must'); }
+              else { row.classList.remove('t-done'); row.classList.add('must'); }
+              const txt = row.querySelector('.task-txt');
+              if(txt) { if(td[id]) txt.classList.add('done'); else txt.classList.remove('done'); }
+            }
+          }
+        }
+      });
+      saveTD(c, td);
+    });
+    updateDash();
+  });
+
+  db.ref('ms').on('value', snap => {
+    if(!snap.exists()) return;
+    const ms = snap.val();
+    Object.keys(ms).forEach(c => {
+      const msData = loadMs(c);
+      Object.keys(ms[c]).forEach(key => { msData[key] = ms[c][key]; });
+      saveMs(c, msData);
+    });
+    COACHES.filter(c=>c!=='darren'&&c!=='vivi').forEach(c=>renderMsForm(c));
+    updateDash();
+  });
+
+  let _fbSelfLVUpdate = false;
+  db.ref('lv').on('value', snap => {
+    if(!snap.exists()) return;
+    if(_fbSelfLVUpdate) return;
+    const lv = snap.val();
+    if(lv.benson_lv && Array.isArray(lv.benson_lv)) saveLV('benson_lv', lv.benson_lv);
+    if(lv.cc_lv && Array.isArray(lv.cc_lv)) saveLV('cc_lv', lv.cc_lv);
+    // Only re-render if not currently editing
+    if(document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      const openWBs_b = getOpenWBs('benson');
+      const openWBs_c = getOpenWBs('cc');
+      renderMaster('benson');
+      renderMaster('cc');
+      openWBs_b.forEach(bid=>{const el=document.getElementById(bid);const arr=document.getElementById('arr_'+bid);if(el){el.classList.remove('collapsed');if(arr)arr.textContent='▴';}});
+      openWBs_c.forEach(bid=>{const el=document.getElementById(bid);const arr=document.getElementById('arr_'+bid);if(el){el.classList.remove('collapsed');if(arr)arr.textContent='▴';}});
+    }
+  });
+
+  db.ref('ftasks').on('value', snap => {
+    if(!snap.exists()) return;
+    const ftasks = snap.val();
+    Object.keys(ftasks).forEach(c => {
+      const fd = loadFT(c);
+      Object.keys(ftasks[c]).forEach(id => { fd[id] = ftasks[c][id]; });
+      saveFT(c, fd);
+    });
+    ['darren','vivi'].forEach(c=>{if(curCoach===c) buildFounderPanelFor(c);});
+    updateDash();
+  });
+}
+
+function showSyncStatus(msg, ok) {
+  const el = document.getElementById('sync-status');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.opacity = '1';
+  el.style.color = ok===true?'#A8DCC0':ok===false?'#F5A0A0':'var(--light)';
+  if(ok !== undefined) setTimeout(()=>{el.style.opacity='0';}, 3000);
+}
+
+init();
+
+</script>
+</body>
+</html>
